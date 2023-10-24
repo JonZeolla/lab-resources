@@ -1,0 +1,12 @@
+---
+- ansible.builtin.include_role:
+    name: docker
+
+- name: Transfer files
+  copy:
+    src: ./files/
+    dest: /home/ubuntu/
+  recurse: yes
+
+- name: Run the setup script
+  shell: /home/ubuntu/setup.sh

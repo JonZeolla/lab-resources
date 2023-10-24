@@ -1,0 +1,5 @@
+Add auto deploy, auto updates, pre-commit hook, etc.
+
+Make update bumpversion the MANIFEST.json version
+
+ansible-lint add to goat? or local?

@@ -1,0 +1,52 @@
+---
+name: "Release"
+
+on:
+  push:
+    tags:
+      # https://docs.github.com/en/actions/reference/workflow-syntax-for-github-actions#filter-pattern-cheat-sheet
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+
+env:
+  python_version: "3.12"
+
+defaults:
+  run:
+    shell: 'bash --noprofile --norc -Eeuo pipefail {0}'
+
+jobs:
+  distribute:
+    name: Distribute
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout the repository
+        uses: actions/checkout@v3
+      - name: Retrieve the tag
+        run: echo "TAG=${GITHUB_REF/refs\/tags\//}" >> "${GITHUB_ENV}"
+      - name: Setup python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.python_version }}
+      - uses: actions/cache@v3
+        with:
+          path: ~/.local/share/virtualenvs
+          key: ${{ runner.os }}-python-${{ env.python_version }}-pipenv-${{ hashFiles('Pipfile.lock') }}
+      - name: Install Task
+        uses: arduino/setup-task@v1
+      - name: Initialize the repo
+        run: task -v init
+      - name: Build the artifacts
+        run: task -v build
+      - name: Create a GitHub release
+        uses: softprops/action-gh-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          name: ${{ env.TAG }}
+          tag_name: ${{ env.TAG }}
+          generate_release_notes: true
+          files: jonzeolla.labs-*.tar.gz
+          draft: false
+          prerelease: false
