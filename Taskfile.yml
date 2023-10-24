@@ -1,0 +1,254 @@
+---
+# https://taskfile.dev
+
+version: '3'
+
+set:
+  - nounset
+  - errexit
+  - pipefail
+
+vars:
+  IMAGE_NAME: jonzeolla/policy-as-code-setup
+  PYTHON_VERSION: 3.12
+  SUPPORTED_PLATFORMS: 'linux/amd64,linux/arm64'
+  EASY_INFRA_VERSION: '2023.10.02'
+  VERSION:
+    sh: cat '{{.ROOT_DIR}}/VERSION'
+  LOCAL_PLATFORM:
+    # Inspired by https://github.com/containerd/containerd/blob/e0912c068b131b33798ae45fd447a1624a6faf0a/platforms/database.go#L76
+    sh: |
+      os="linux"
+      arch="$(uname -m)"
+
+      case ${arch} in
+        # AMD64
+        x86_64)  echo "${os}/amd64" ;;
+        amd64)   echo "${os}/amd64" ;;
+
+        # ARM64 special case due to https://hub.docker.com/_/python platforms
+        aarch64) echo "${os}/arm64" ;;
+        arm64)   echo "${os}/arm64" ;;
+      esac
+
+silent: true
+
+tasks:
+  init-pipenv:
+    desc: Initializes the pipenv virtual environment if Pipfile.lock changes
+    internal: true
+    sources:
+      - Pipfile.lock
+    preconditions:
+      - which pipenv || python -m pip install --upgrade pipenv
+    cmds:
+      - pipenv install --deploy --ignore-pipfile --dev
+
+  init-pre-commit:
+    desc: Install the pre-commit hooks
+    internal: true
+    sources:
+      - .pre-commit-config.yaml
+    status:
+      # Only install the pre-commit hooks if you are in a git repository; quote to avoid yaml intrepretering the ! as a node tag
+      # https://yaml.org/spec/1.2.2/#691-node-tags
+      - '! test -d .git'
+    cmds:
+      # Don't run this in pipelines
+      - '{{if ne .GITHUB_ACTIONS "true"}}pipenv run pre-commit install{{end}}'
+
+  init:
+    desc: Initialize the repo for local use; intended to be run after git clone
+    cmds:
+      - task: init-pipenv
+      - task: init-pre-commit
+
+  lock:
+    desc: Generate a Pipfile.lock if Pipfile changed from last run
+    sources:
+      - Pipfile
+    generates:
+      - Pipfile.lock
+    cmds:
+      - pipenv lock
+
+  runner-curl-install:
+    desc: Install something on a GitHub Actions runner via curl
+    internal: true
+    status:
+      - '{{if eq .GITHUB_ACTIONS "true"}}exit 1{{end}}'
+    preconditions:
+      - test -d "${RUNNER_TEMP}/bin" || mkdir "${RUNNER_TEMP}/bin"
+      - |
+        case ${GITHUB_PATH} in
+          *${RUNNER_TEMP}/bin*) exit 0 ;;
+          *) echo "${RUNNER_TEMP}/bin" >> "${GITHUB_PATH}" ;;
+        esac
+    requires:
+      vars:
+        - INSTALL_URL
+        - TOOL
+    platforms: [linux]
+    cmds:
+      - curl -sSfL {{.INSTALL_URL}} | sh -s -- -b "${RUNNER_TEMP}/bin"
+      - chmod +x "${RUNNER_TEMP}/bin/{{.TOOL}}"
+
+  mac-brew-install:
+    desc: Install something on a mac via brew
+    internal: true
+    platforms: [darwin]
+    requires:
+      vars: [TOOLS]
+    cmds:
+      - for:
+          var: TOOLS
+          split: ','
+          as: tool
+        cmd: brew install {{.tool}}
+
+  lint:
+    desc: Run the linter(s)
+    platforms: [linux, darwin]
+    vars:
+      INPUT_AUTO_FIX: '{{.INPUT_AUTO_FIX | default ""}}'
+      INPUT_DISABLE_MYPY: '{{.INPUT_DISABLE_MYPY | default ""}}'
+      INPUT_EXCLUDE: '{{.INPUT_EXCLUDE | default ""}}'
+      INPUT_LOG_LEVEL: '{{.INPUT_LOG_LEVEL | default ""}}'
+    preconditions:
+      - sh: |
+          docker pull seiso/goat:latest || \
+            echo "Failed to pull the goat, continuing anyway..."
+    cmds:
+      - |
+        docker run --env INPUT_AUTO_FIX="{{.INPUT_AUTO_FIX}}" \
+                   --env INPUT_DISABLE_MYPY="{{.INPUT_DISABLE_MYPY}}" \
+                   --env INPUT_EXCLUDE="{{.INPUT_EXCLUDE}}" \
+                   --env INPUT_LOG_LEVEL="{{.INPUT_LOG_LEVEL}}" \
+                   --rm -v "{{.ROOT_DIR}}:/goat" seiso/goat:latest
+      - pipenv run ansible-lint
+
+  build:
+    desc: Build the project; docker images, compiled binaries, etc.
+    platforms: [linux, darwin]
+    requires:
+      vars: ['VERSION']
+    vars:
+      VERSION: '{{.VERSION}}'
+      TAG_COMMIT_HASH:
+        sh: git rev-list -1 "v{{.VERSION}}"
+      COMMIT_HASH:
+        sh: git rev-parse HEAD
+      COMMIT_HASH_SHORT:
+        sh: git rev-parse --short HEAD
+      REPO_TAGS:
+        sh: git tag -l
+      BUILD_VERSION:
+        sh: |
+          pipenv run python -c '
+          version_string = "v{{.VERSION}}"
+          repo_tags = []
+          {{range $tag := .REPO_TAGS | splitLines -}}
+          repo_tags.append("{{$tag}}")
+          {{end}}
+          if (
+              version_string in repo_tags
+              and "{{.TAG_COMMIT_HASH}}" == "{{.COMMIT_HASH}}"
+          ):
+              build_version = "{{.VERSION}}"
+          else:
+              build_version = f"{{.VERSION}}-{{.COMMIT_HASH_SHORT}}"
+          print(build_version)'
+    cmds:
+      - docker run -u 0 -v .:/iac seiso/easy_infra:{{.EASY_INFRA_VERSION}}-ansible ansible-galaxy collection build ansible/jonzeolla/labs/ --force
+
+  test:
+    desc: Run the project tests
+    env:
+      INPUT_DISABLE_MYPY: '{{.INPUT_DISABLE_MYPY}}'
+      INPUT_EXCLUDE: '{{.INPUT_EXCLUDE}}'
+      INPUT_LOG_LEVEL: "{{.CLI_ARGS}}"
+    vars:
+      PLATFORM: '{{if eq .PLATFORM "all"}}{{.SUPPORTED_PLATFORMS}}{{else if .PLATFORM}}{{.PLATFORM}}{{else}}{{.LOCAL_PLATFORM}}{{end}}'
+    # If a cross-platform image is provided via in the PLATFORM var, exit 1 here which bypasses tests
+    status:
+      - '{{if eq .PLATFORM .LOCAL_PLATFORM}}exit 1{{end}}'
+    cmds:
+      - docker run -u 0 -v .:/iac seiso/easy_infra:{{.EASY_INFRA_VERSION}}-ansible ansible-galaxy collection install jonzeolla-labs-{{.VERSION}}.tar.gz
+
+  clean:
+    desc: Clean up build artifacts, cache files/directories, temp files, etc.
+    cmds:
+      - find {{.ROOT_DIR}} -type f -name '.DS_Store' -delete
+      - find {{.ROOT_DIR}} -type f -name '.Thumbs.db' -delete
+      - find {{.ROOT_DIR}} -type d -name '.task' -exec rm -rf {} +
+      - find {{.ROOT_DIR}} -type f -name 'jonzeolla.labs-*.tar.gz' -delete
+
+  release:
+    desc: Cut a project release
+    requires:
+      vars: ['PYTHON_VERSION']
+    vars:
+      PYTHON_VERSION: '{{.PYTHON_VERSION}}'
+      RELEASE_TYPE: "{{.CLI_ARGS}}"
+      DATE_INFO: '{{now | date "2006.01"}}'
+      REPO_TAGS:
+        sh: git tag -l
+      VERSIONING:
+        sh: grep versioning setup.cfg | cut -d '"' -f 2
+      RELEASE_VERSION:
+        sh: |
+          docker run --rm \
+                     -v "${PWD}:/usr/src/app" \
+                     -w /usr/src/app \
+                     python:{{.PYTHON_VERSION}}-slim \
+                     python -c '
+          import re
+          pattern = re.compile(r"v2[0-1][0-9]{2}.(0[0-9]|1[0-2]).[0-9]{2}")
+          repo_tags = []
+          {{range $tag := .REPO_TAGS | splitLines -}}
+          repo_tags.append("{{$tag}}")
+          {{end}}
+          for tag in reversed(repo_tags):
+              if pattern.fullmatch(tag):
+                  latest_release = tag
+                  break
+              else:
+                  latest_release = None
+          if latest_release and "{{.DATE_INFO}}" == latest_release[1:8]:
+              increment = str(int(latest_release[9:]) + 1).zfill(2)
+          else:
+              increment = "01"
+          new_version = f"{{.DATE_INFO}}.{increment}"
+          print(new_version)'
+    preconditions:
+      - sh: test `git status -s | wc -w` = "0"
+        msg: "There are untracked files, please commit before creating a release."
+    cmds:
+      - task: pipeline-git-init
+      # Better conditional syntax is pending https://github.com/go-task/task/issues/608
+      - >
+        {{if eq .VERSIONING "CalVer"}}
+          pipenv run bumpversion --config-file setup.cfg --new-version {{.RELEASE_VERSION}} unusedpart
+        {{else if eq .VERSIONING "SemVer"}}
+          pipenv run bumpversion --config-file setup.cfg {{.RELEASE_TYPE}}
+        {{else}}
+          echo "Invalid VERSIONING var"; exit 1
+        {{end}}
+
+  update:
+    desc: Update the project dev and runtime dependencies, and other misc components
+    cmds:
+      - task: lock
+      - pipenv run pre-commit autoupdate --bleeding-edge --freeze
+      - >
+        docker run --rm -v "${PWD}:/usr/src/app" -w /usr/src/app python:{{.PYTHON_VERSION}}-slim /bin/bash
+        -c "python3 -m pip install --upgrade pipenv &>/dev/null && pipenv update"
+
+  pipeline-git-init:
+    desc: Initialize git configs in the pipeline
+    status:
+      - '{{if eq .GITHUB_ACTIONS "true"}}exit 1{{end}}'
+    cmds:
+      - git config --global user.name "Automation"
+      - git config --global user.email "automation@jonzeolla.com"
+      - git config --global credential.helper '!f() { sleep 1 && echo "username=${GITHUB_USER}" && echo "password=${GITHUB_PAT}"; }; f'

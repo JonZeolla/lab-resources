@@ -1,0 +1,18 @@
+---
+namespace: jonzeolla
+name: labs
+version: 0.0.0
+readme: README.md
+authors:
+  - Jon Zeolla
+description: Reusable lab resources
+license_file: 'LICENSE'
+tags:
+  - JonZeolla
+  - lab
+repository: https://github.com/jonzeolla/lab-resources
+homepage: https://jonzeolla.com
+issues: http://github.com/jonzeolla/lab-resources/issues
+build_ignore:
+  - .github
+  - .gitignore

@@ -1,0 +1,22 @@
+---
+header:
+  schema-version: 1.0.0
+  expiration-date: '2023-10-25T00:00:00.000Z'
+  project-url: https://github.com/jonzeolla/lab-resources
+  project-release: 0.0.0
+project-lifecycle:
+  status: active
+  bug-fixes-only: false
+  core-maintainers:
+    - github:jonzeolla
+contribution-policy:
+  accepts-pull-request: true
+  accepts-automated-pull-request: true
+distribution-points:
+  - https://github.com/jonzeolla/lab-resources/releases
+security-contacts:
+  - type: email
+    value: security@jonzeolla.com
+vulnerability-reporting:
+  accepts-vulnerability-reports: true
+  email-contact: security@jonzeolla.com
