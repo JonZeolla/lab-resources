@@ -1,0 +1,56 @@
+---
+services:
+  dind:
+    image: docker:dind
+    restart: always
+    privileged: true
+    environment:
+      DOCKER_TLS_CERTDIR: ""
+    volumes:
+      - "${GITLAB_HOME}/runner/data/dind/docker:/var/lib/docker"
+    command:
+      - --tls=false
+    networks:
+      - gitlab_network
+
+  runner:
+    restart: always
+    image: registry.gitlab.com/gitlab-org/gitlab-runner:alpine
+    depends_on:
+      - dind
+    environment:
+      - DOCKER_HOST=tcp://dind:2375
+    volumes:
+      - "${GITLAB_HOME}/runner/config:/etc/gitlab-runner:z"
+      - "${GITLAB_HOME}/runner/cache:/cache"
+    networks:
+      - gitlab_network
+
+  register-runner:
+    restart: "no"
+    image: registry.gitlab.com/gitlab-org/gitlab-runner:alpine
+    depends_on:
+      - dind
+    environment:
+      - CI_SERVER_URL=${CI_SERVER_URL}
+      - REGISTRATION_TOKEN=${REGISTRATION_TOKEN}
+    command:
+      [
+        "register",
+        "--non-interactive",
+        "--locked=false",
+        "--name=${RUNNER_NAME}",
+        "--executor=docker",
+        "--docker-image=docker:dind",
+        "--docker-volumes=/var/run/docker.sock:/var/run/docker.sock",
+      ]
+    volumes:
+      - "${GITLAB_HOME}/runner/config:/etc/gitlab-runner:z"
+      - "${GITLAB_HOME}/runner/data/dind/docker:/var/lib/docker"
+    networks:
+      - gitlab_network
+
+networks:
+  gitlab_network:
+    driver: bridge
+    name: gitlab-network

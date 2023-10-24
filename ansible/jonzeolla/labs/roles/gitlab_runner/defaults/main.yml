@@ -1,0 +1,3 @@
+---
+RUNNER_NAME: "gitlab-runner"
+GITLAB_HOME: "{{ home_dir }}/gitlab"

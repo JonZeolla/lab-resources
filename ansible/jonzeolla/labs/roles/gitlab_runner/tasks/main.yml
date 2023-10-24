@@ -1,0 +1,103 @@
+---
+- name: Ensure supported OS
+  ansible.builtin.assert:
+    that:
+      - ansible_os_family in ['Debian', 'RedHat']
+    fail_msg: "This playbook only supports Debian and RedHat based systems."
+  run_once: true
+
+- name: Set root_password if not set
+  set_fact:
+    root_password: "{{ lookup('ansible.builtin.password', '/dev/null', length=50, chars=['ascii_letters', 'digits', 'special']) }}"
+  when: root_password is not defined
+
+- name: Set registration_token if not set
+  set_fact:
+    registration_token: "{{ lookup('ansible.builtin.password', '/dev/null', length=50, chars=['ascii_letters', 'digits', 'special']) }}"
+  when: registration_token is not defined
+
+- name: Retrieve and set external IP
+  when: external_ip is not defined
+  block:
+    - name: Gather EC2 metadata
+      amazon.aws.ec2_metadata_facts:
+
+    - name: Set the external_ip fact to EC2 instance's public IPv4 IP
+      ansible.builtin.set_fact:
+        external_ip: "{{ ansible_ec2_public_ipv4 }}"
+
+- name: Run GitLab role
+  ansible.builtin.include_role:
+    name: gitlab
+
+- name: Retrieve CI Server URL
+  block:
+    - name: Install jq; custom to Amazon Linux 2 due to it using _very_ old components
+      when: >
+        ansible_distribution == 'Amazon' and
+        ansible_distribution_version == '2'
+      ansible.builtin.command:
+        cmd: yum -y install jq
+      become: true
+    - name: Pull the CI Server URL
+      ansible.builtin.shell:
+        cmd: echo "http://$(docker network inspect gitlab-network | jq -r '.[].Containers[] | select(.Name == "gitlab-ce") | .IPv4Address' | awk -F/ '{print $1}')"
+      register: ci_server_url_lookup
+
+- name: Set ci_server_url fact
+  ansible.builtin.set_fact:
+    ci_server_url: "{{ ci_server_url_lookup.stdout }}"
+
+- name: Setup GitLab Runners
+  environment:
+    CI_SERVER_URL: "{{ ci_server_url }}"
+    GITLAB_HOME: "{{ GITLAB_HOME }}"
+    REGISTRATION_TOKEN: "{{ registration_token }}"
+    RUNNER_NAME: "{{ RUNNER_NAME }}"
+  block:
+    - name: Transfer files
+      ansible.builtin.copy:
+        src: runner.yml
+        dest: "{{ home_dir }}"
+        mode: "0644"
+
+    - name: Create runner config folder
+      ansible.builtin.file:
+        path: "{{ GITLAB_HOME }}/runner/config"
+        state: directory
+        mode: '0755'
+      become: true
+
+    - name: Create empty config.toml
+      ansible.builtin.file:
+        path: "{{ GITLAB_HOME }}/runner/config/config.toml"
+        state: touch
+        mode: '0600'
+      become: true
+
+    - name: Pull container images
+      ansible.builtin.command:
+        argv:
+          - /usr/local/bin/docker-compose
+          - --file
+          - "{{ home_dir }}/runner.yml"
+          - pull
+        chdir: "{{ home_dir }}"
+      register: compose_pull
+      changed_when: "'Downloading' in compose_pull.stdout"
+
+    - name: Start containers
+      ansible.builtin.command:
+        argv:
+          - /usr/local/bin/docker-compose
+          - --file
+          - "{{ home_dir }}/runner.yml"
+          - up
+          - --detach
+        chdir: "{{ home_dir }}"
+      register: compose_up
+      changed_when: "'Started' in compose_up.stdout"
+
+- name: Login
+  debug:
+    msg: "You can now log into GitLab at http://{{ external_ip }} with username root and password {{ root_password }}"

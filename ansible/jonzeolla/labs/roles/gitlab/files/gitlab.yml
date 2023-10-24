@@ -1,0 +1,29 @@
+---
+services:
+  gitlab:
+    restart: always
+    image: gitlab/gitlab-ce:16.5.0-ce.0
+    ports:
+      - "80:80"
+      - "443:443"
+      - "2222:22"
+    container_name: gitlab-ce
+    hostname: '${EXTERNAL_IP}'
+    environment:
+      # external_url is used for cloning in the pipeline
+      GITLAB_OMNIBUS_CONFIG: |
+        external_url 'http://${EXTERNAL_IP}'
+        gitlab_rails['gitlab_shell_ssh_port'] = 2222
+        gitlab_rails['initial_root_password'] = "${ROOT_PASSWORD}"
+        gitlab_rails['initial_shared_runners_registration_token'] = "${REGISTRATION_TOKEN}"
+    volumes:
+      - "${GITLAB_HOME}/etc:/etc/gitlab"
+      - "${GITLAB_HOME}/log:/var/log/gitlab"
+      - "${GITLAB_HOME}/opt:/var/opt/gitlab"
+    networks:
+      - gitlab_network
+
+networks:
+  gitlab_network:
+    driver: bridge
+    name: gitlab-network

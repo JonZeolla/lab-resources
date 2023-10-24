@@ -1,0 +1,86 @@
+---
+- name: Ensure supported OS
+  ansible.builtin.assert:
+    that:
+      - ansible_os_family in ['RedHat']
+    fail_msg: "This playbook only supports RedHat based systems."
+  run_once: true
+
+- name: Install prereqs (apt)
+  become: true
+  when: ansible_os_family == 'Debian'
+  ansible.builtin.apt:
+    pkg:
+      - git
+    update_cache: true
+    install_recommends: no
+
+- name: Install prereqs
+  become: true
+  when: >
+    ansible_os_family == 'RedHat' and
+    ansible_distribution == 'Amazon' and
+    ansible_distribution_version == '2' and
+    ansible_python_version is ansible.builtin.version('2.7', '<=')
+  ansible.builtin.yum:
+    name:
+      - git
+    state: latest
+
+- name: Install prereqs
+  become: true
+  when: >
+    ansible_os_family == 'RedHat' and
+    ansible_distribution == 'Amazon' and
+    ansible_distribution_version == '2023'
+  ansible.builtin.dnf:
+    name:
+      - git
+    state: latest
+    skip_broken: true
+
+- name: Install linuxbrew
+  block:
+    - name: Download linuxbrew installer
+      ansible.builtin.get_url:
+        url: https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh
+        dest: /tmp/install-homebrew.sh
+        mode: "0755"
+    - name: Install linuxbrew
+      ansible.builtin.command:
+        cmd: /tmp/install-homebrew.sh
+        creates: /home/linuxbrew/.linuxbrew/bin/brew
+      environment:
+        NONINTERACTIVE: 1
+    - name: Add brew to path
+      become: true
+      ansible.builtin.copy:
+        dest: /etc/profile.d/brew.sh
+        content: 'PATH=$PATH:/home/linuxbrew/.linuxbrew/bin'
+    - name: Ensure $HOME/bin exists
+      ansible.builtin.file:
+        path: "{{ home_dir }}/bin"
+        state: directory
+    - name: Setup a symlink
+      ansible.builtin.file:
+        src: /home/linuxbrew/.linuxbrew/bin/brew
+        dest: "{{ home_dir }}/bin/brew"
+        state: link
+    - name: Install homebrew runtime dependencies
+      become: true
+      when: >
+        ansible_os_family == 'RedHat' and
+        ansible_python_version is ansible.builtin.version('2.7', '<=')
+      ansible.builtin.yum:
+        name: '@Development Tools'
+        state: latest
+    - name: Install homebrew runtime dependencies
+      become: true
+      when: >
+        ansible_os_family == 'RedHat' and
+        ansible_distribution == 'Amazon' and
+        ansible_distribution_version == '2023' and
+        ansible_python_version is ansible.builtin.version('3.0', '>=')
+      ansible.builtin.dnf:
+        name: '@Development Tools'
+        state: latest

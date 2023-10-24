@@ -1,0 +1,15 @@
+---
+- name: Resize the host disk to 40 GiB
+  when: "lookup('ansible.builtin.env', 'C9_PROJECT', default='') | length > 0"
+  block:
+    - name: Transfer resize script
+      ansible.builtin.copy:
+        src: resize-disk.sh
+        dest: "{{ home_dir }}"
+        mode: "0755"
+
+    - name: Resize the host disk to 40 GiB
+      ansible.builtin.command:
+        argv:
+          - "{{ home_dir }}/resize-disk.sh"
+          - 40

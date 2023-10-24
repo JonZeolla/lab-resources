@@ -1,0 +1,2 @@
+---
+GITLAB_HOME: "{{ home_dir }}/gitlab"

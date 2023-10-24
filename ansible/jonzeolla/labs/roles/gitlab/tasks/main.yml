@@ -1,0 +1,196 @@
+---
+- name: Ensure supported OS
+  ansible.builtin.assert:
+    that:
+      - ansible_os_family in ['Debian', 'RedHat']
+    fail_msg: "This playbook only supports Debian and RedHat based systems."
+  run_once: true
+
+- name: Run docker_compose role
+  ansible.builtin.include_role:
+    name: docker_compose
+
+- name: Run homebrew role
+  ansible.builtin.include_role:
+    name: homebrew
+
+- name: Install glab
+  community.general.homebrew:
+    name: glab
+    state: present
+    update_homebrew: true
+
+- name: Install prereqs (apt)
+  become: true
+  when: ansible_os_family == 'Debian'
+  ansible.builtin.apt:
+    pkg:
+      - python3-pip
+    update_cache: true
+    install_recommends: no
+
+- name: Install prereqs
+  become: true
+  when: >
+    ansible_os_family == 'RedHat' and
+    ansible_python_version is ansible.builtin.version('2.7', '<=')
+  ansible.builtin.yum:
+    name:
+      - python-pip
+    state: latest
+
+- name: Install prereqs
+  become: true
+  when: >
+    ansible_os_family == 'RedHat' and
+    ansible_distribution == 'Amazon' and
+    ansible_distribution_version == '2023'
+  ansible.builtin.dnf:
+    name:
+      - python3-pip
+    state: latest
+
+- name: Install prereq python packages
+  ansible.builtin.pip:
+    name: boto3
+    state: latest
+
+- name: Setup the filesystem
+  ansible.builtin.file:
+    path: "{{ home_dir }}/.ssh/known_hosts"
+    owner: "{{ lookup('ansible.builtin.env', 'HOST_USER') }}"
+    group: "{{ lookup('ansible.builtin.env', 'HOST_USER') }}"
+  become: true
+
+- name: Gather EC2 metadata
+  amazon.aws.ec2_metadata_facts:
+
+- name: Gather facts about the AWS security group name
+  amazon.aws.ec2_security_group_info:
+    region: "{{ ansible_ec2_placement_region }}"
+    filters:
+      group-name: "{{ ansible_ec2_security_groups.split(',')[0] }}"
+  register: security_group_info
+
+- name: Set root_password if not set
+  when: root_password is not defined
+  set_fact:
+    root_password: "{{ lookup('ansible.builtin.password', '/dev/null', length=50, chars=['ascii_letters', 'digits', 'special']) }}"
+
+- name: Set registration_token if not set
+  when: registration_token is not defined
+  set_fact:
+    registration_token: "{{ lookup('ansible.builtin.password', '/dev/null', length=50, chars=['ascii_letters', 'digits', 'special']) }}"
+
+- name: Retrieve and set external IP
+  when: external_ip is not defined
+  block:
+    - name: Gather EC2 metadata
+      amazon.aws.ec2_metadata_facts:
+
+    - name: Set the external_ip fact to EC2 instance's public IPv4 IP
+      ansible.builtin.set_fact:
+        external_ip: "{{ ansible_ec2_public_ipv4 }}"
+
+- name: Ensure the correct network access
+  amazon.aws.ec2_security_group:
+    # Usually I prefer GUIDs, but name is required if state:present
+    name: "{{ ansible_ec2_security_groups.split(',')[0] }}"
+    region: "{{ ansible_ec2_placement_region }}"
+    vpc_id: "{{ security_group_info.security_groups[0].vpc_id }}"
+    description: "{{ security_group_info.security_groups[0].description }}"
+    rules:
+      # Don't specify rule_desc otherwise it assumes the rule exists and attempts to update it, which fails
+      - ports:
+          - "22"
+        cidr_ip: "{{ lookup('ansible.builtin.env', 'CLIENT_IP') }}/32"
+      - ports:
+          - "80"
+        cidr_ip: "{{ lookup('ansible.builtin.env', 'CLIENT_IP') }}/32"
+      - ports:
+          - "80"
+        cidr_ip: "{{ external_ip }}/32"
+      - ports:
+          - "2222"
+        cidr_ip: "{{ external_ip }}/32"
+  # Retry in case there's a failure due to a ::/32 rule already existing. The first run should purge it so the second run succeeds
+  failed_when: security_group_created is failed
+  until: security_group_created is succeeded
+  register: security_group_created
+  retries: 1
+
+- name: Setup gitlab-ce
+  environment:
+    EXTERNAL_IP: "{{ external_ip }}"
+    GITLAB_HOME: "{{ GITLAB_HOME }}"
+    REGISTRATION_TOKEN: "{{ registration_token }}"
+    ROOT_PASSWORD: "{{ root_password }}"
+  block:
+    - name: Transfer files
+      ansible.builtin.copy:
+        src: gitlab.yml
+        dest: "{{ home_dir }}"
+        mode: "0644"
+
+    - name: Validate compose file
+      ansible.builtin.command:
+        argv:
+          - /usr/local/bin/docker-compose
+          - --file
+          - "{{ home_dir }}/gitlab.yml"
+          - config
+          - --quiet
+        chdir: "{{ home_dir }}"
+      changed_when: false
+
+    - name: Pull container images
+      ansible.builtin.command:
+        argv:
+          - /usr/local/bin/docker-compose
+          - --file
+          - "{{ home_dir }}/gitlab.yml"
+          - pull
+        chdir: "{{ home_dir }}"
+      register: compose_pull
+      changed_when: "'Downloading' in compose_pull.stdout"
+
+    - name: Start containers
+      ansible.builtin.command:
+        argv:
+          - /usr/local/bin/docker-compose
+          - --file
+          - "{{ home_dir }}/gitlab.yml"
+          - up
+          - --detach
+        chdir: "{{ home_dir }}"
+      register: compose_up
+      changed_when: "'Started' in compose_up.stdout"
+
+- name: Wait for GitLab to become healthy
+  block:
+  - name: Wait for GitLab to begin listening
+    ansible.builtin.wait_for:
+      host: "{{ external_ip }}"
+      port: 80
+      state: started
+      delay: 10
+
+  - name: Wait for GitLab structured responses
+    ansible.builtin.command: docker exec gitlab-ce curl -s http://127.0.0.1/-/readiness
+    register: gitlab_readiness
+    retries: 30
+    delay: 5
+    until: gitlab_readiness.stdout is defined and 'master_check' in (gitlab_readiness.stdout | from_json)
+    changed_when: false
+
+  - name: Wait for the readiness probe to respond with ok
+    ansible.builtin.command: docker exec gitlab-ce curl -s http://127.0.0.1/-/readiness
+    register: gitlab_readiness
+    retries: 60
+    delay: 2
+    until: "'ok' in (gitlab_readiness.stdout | from_json)['master_check'][0]['status']"
+    changed_when: false
+
+- name: Login
+  debug:
+    msg: "You can now log into GitLab at http://{{ external_ip }} with username root and password {{ root_password }}"
