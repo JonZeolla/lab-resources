@@ -1,0 +1,10 @@
+---
+- ansible.builtin.include_role:
+    name: docker
+
+- name: Install docker compose
+  ansible.builtin.apt:
+    install_recommends: no
+    update_cache: yes
+    package:
+      - docker-compose-plugin

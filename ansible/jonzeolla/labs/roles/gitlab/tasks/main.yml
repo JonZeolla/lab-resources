@@ -1,6 +1,6 @@
 ---
 - ansible.builtin.include_role:
-    name: docker
+    name: docker-compose
 
 - name: Transfer files
   copy:
