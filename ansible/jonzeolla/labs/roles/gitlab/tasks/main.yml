@@ -4,9 +4,27 @@
 
 - name: Transfer files
   copy:
-    src: ./files/
-    dest: /home/ubuntu/
-  recurse: yes
+    src: docker-compose.yml
+    dest: "{{ home_dir }}"
 
-- name: Run the setup script
-  shell: /home/ubuntu/setup.sh
+- name: Validate compose file
+  ansible.builtin.command:
+    cmd: docker compose --file docker-compose.yml config --quiet
+    chdir: "{{ home_dir }}"
+  environment:
+    GITLAB_HOME: "{{ home_dir }}/gitlab"
+  changed_when: false
+
+- name: Pull container images
+  ansible.builtin.command:
+    cmd: docker compose --file docker-compose.yml pull
+    chdir: "{{ home_dir }}"
+  register: compose_pull
+  changed_when: "'Downloading' in compose_pull.stdout"
+
+- name: Start containers
+  ansible.builtin.command:
+    cmd: docker compose --file docker-compose.yml up --detach
+    chdir: "{{ home_dir }}"
+  register: compose_up
+  changed_when: "'Started' in compose_up.stdout"
