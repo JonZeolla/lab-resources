@@ -25,18 +25,19 @@ REGION=$(curl -s -H "X-aws-ec2-metadata-token: $TOKEN" -v http://169.254.169.254
 
 # Get the ID of the Amazon EBS volume associated with the instance.
 VOLUMEID=$(aws ec2 describe-instances \
-  --instance-id $INSTANCEID \
+  --instance-id "$INSTANCEID" \
   --query "Reservations[0].Instances[0].BlockDeviceMappings[0].Ebs.VolumeId" \
   --output text \
-  --region $REGION)
+  --region "$REGION")
 
 # Resize the EBS volume.
-aws ec2 modify-volume --volume-id $VOLUMEID --size $SIZE
+aws ec2 modify-volume --volume-id "$VOLUMEID" --size "$SIZE"
 
 # Wait for the resize to finish.
+# shellcheck disable=SC2140
 while [ \
   "$(aws ec2 describe-volumes-modifications \
-    --volume-id $VOLUMEID \
+    --volume-id "$VOLUMEID" \
     --filters Name=modification-state,Values="optimizing","completed" \
     --query "length(VolumesModifications)"\
     --output text)" != "1" ]; do
