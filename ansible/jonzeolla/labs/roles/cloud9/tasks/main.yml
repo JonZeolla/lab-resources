@@ -16,8 +16,8 @@
     dest: "{{ home_dir }}"
   when: script_info.stat.exists == false
 
-- name: Run get-docker.sh
-  shell: "{{ home_dir }}/resize-disk.sh"
+- name: Resize the host disk to 40 GiB
+  shell: "{{ home_dir }}/resize-disk.sh 40"
   args:
     creates: /tmp/.resize-disk
   when: touchfile_info.stat.exists == false
