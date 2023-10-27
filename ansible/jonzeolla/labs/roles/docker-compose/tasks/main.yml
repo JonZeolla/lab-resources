@@ -20,7 +20,11 @@
       ansible.builtin.apt_repository:
         repo: "deb [arch={{ ansible_architecture }} signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
         state: present
-      when: ansible_os_family == 'Debian'
+
+    - name: Update the apt cache
+      ansible.builtin.apt:
+        update_cache: yes
+  when: ansible_os_family == 'Debian'
 
 - name: Install repository for Red Hat (yum)
   ansible.builtin.yum_repository:

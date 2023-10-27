@@ -6,6 +6,11 @@
     fail_msg: "This playbook only supports Debian and RedHat based systems."
   run_once: true
 
+- name: Update the apt cache
+  ansible.builtin.apt:
+    update_cache: yes
+  when: ansible_os_family == 'Debian'
+
 - name: Install prereq packages
   ansible.builtin.package:
     name:
