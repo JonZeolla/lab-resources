@@ -1,0 +1,23 @@
+- name: Check if resize script exists
+  stat:
+    path: "{{ home_dir }}/resize-disk.sh"
+  register: script_info
+  ignore_errors: true
+
+- name: Check if resize script touchfile exists
+  stat:
+    path: "/tmp/.resize-disk"
+  register: touchfile_info
+  ignore_errors: true
+
+- name: Transfer resize script
+  copy:
+    src: resize-disk.sh
+    dest: "{{ home_dir }}"
+  when: script_info.stat.exists == false
+
+- name: Run get-docker.sh
+  shell: "{{ home_dir }}/resize-disk.sh"
+  args:
+    creates: /tmp/.resize-disk
+  when: touchfile_info.stat.exists == false
