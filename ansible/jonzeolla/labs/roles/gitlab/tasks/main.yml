@@ -1,4 +1,11 @@
 ---
+- name: Ensure supported OS
+  assert:
+    that:
+      - ansible_os_family in ['Debian', 'RedHat']
+    fail_msg: "This playbook only supports Debian and RedHat based systems."
+  run_once: true
+
 - ansible.builtin.include_role:
     name: docker-compose
 
