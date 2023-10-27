@@ -9,29 +9,6 @@
 - ansible.builtin.include_role:
     name: docker
 
-- name: Install repository for Debian
-  block:
-    - name: Setup apt key
-      ansible.builtin.apt_key:
-        url: https://download.docker.com/linux/ubuntu/gpg
-
-    - name: Setup apt repository
-      ansible.builtin.apt_repository:
-        repo: "deb [arch={{ ansible_architecture }} signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
-        state: present
-
-    - name: Update the apt cache
-      ansible.builtin.apt:
-        update_cache: yes
-  when: ansible_os_family == 'Debian'
-
-- name: Install repository for Red Hat
-  ansible.builtin.yum_repository:
-    name: docker
-    description: Docker RHEL repository
-    baseurl: https://download.docker.com/linux/rhel/docker-ce.repo
-  when: ansible_os_family == 'RedHat'
-
 - name: Install docker compose
   ansible.builtin.package:
     name:
