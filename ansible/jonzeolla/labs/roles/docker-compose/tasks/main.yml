@@ -29,5 +29,5 @@
         mode: "0755"
       become: true
     - name: Test Docker Compose
-      ansible.builtin.command: "docker-compose version"
+      ansible.builtin.command: "/usr/local/bin/docker-compose version"
   when: ansible_os_family == 'RedHat'
