@@ -16,6 +16,12 @@
     dest: "{{ home_dir }}"
   when: script_info.stat.exists == false
 
+- name: Set execute permissions
+  ansible.builtin.file:
+    path: "{{ home_dir }}/resize-disk.sh"
+    mode: "0755"
+  become: true
+
 - name: Resize the host disk to 40 GiB
   shell: "{{ home_dir }}/resize-disk.sh 40"
   args:
