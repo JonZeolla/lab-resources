@@ -21,7 +21,7 @@
 - name: Install docker compose
   block:
     - name: Download Docker Compose binary
-      ansible.builtin.command: "curl -L https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m) -o /usr/local/bin/docker-compose"
+      ansible.builtin.command: "curl -L https://github.com/docker/compose/releases/latest/download/docker-compose-{{ ansible_system | lower }}-{{ ansible_architecture }} -o /usr/local/bin/docker-compose"
       become: true
     - name: Set execute permissions
       ansible.builtin.file:
