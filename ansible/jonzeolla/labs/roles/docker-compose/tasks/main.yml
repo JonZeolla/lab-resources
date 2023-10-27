@@ -14,3 +14,20 @@
     name:
       - docker-compose-plugin
     state: latest
+  when: ansible_os_family == 'Debian'
+
+# As of 2023-10-27 we need to install docker-compose on Amazon Linux 2 manually. Using the repo fails with a 404 due to a lack of
+# https://download.docker.com/linux/rhel/2/x86_64/stable/repodata/repomd.xml
+- name: Install docker compose
+  block:
+    - name: Download Docker Compose binary
+      ansible.builtin.command: "curl -L https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m) -o /usr/local/bin/docker-compose"
+      become: true
+    - name: Set execute permissions
+      ansible.builtin.file:
+        path: /usr/local/bin/docker-compose
+        mode: "0755"
+      become: true
+    - name: Test Docker Compose
+      ansible.builtin.command: "docker-compose version"
+  when: ansible_os_family == 'RedHat'
