@@ -1,13 +1,12 @@
 ---
-- name: Install prereqs
-  ansible.builtin.apt:
-    install_recommends: no
-    update_cache: yes
-    package:
+- name: Install prereq packages
+  ansible.builtin.package:
+    name:
       - ca-certificates
       - curl
       - jq
       - sudo
+    state: latest
 
 - name: Download get-docker.sh
   get_url:
