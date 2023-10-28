@@ -1,6 +1,3 @@
-- name: Include global variables
-  include_vars: vars/global.yml
-
 - name: Check if resize script touchfile exists
   ansible.builtin.stat:
     path: "/tmp/.resize-disk"
