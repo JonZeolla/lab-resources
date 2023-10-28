@@ -10,6 +10,9 @@ license_file: 'LICENSE'
 tags:
   - JonZeolla
   - lab
+  - cloud
+  - linux
+  - security
 repository: https://github.com/jonzeolla/lab-resources
 homepage: https://jonzeolla.com
 issues: http://github.com/jonzeolla/lab-resources/issues

@@ -6,28 +6,27 @@
     fail_msg: "This playbook only supports Debian and RedHat based systems."
   run_once: true
 
-- ansible.builtin.include_role:
+- name: Install docker
+  ansible.builtin.include_role:
     name: docker
 
 - name: Install docker compose
+  when: ansible_os_family == 'Debian'
   ansible.builtin.package:
     name:
       - docker-compose-plugin
     state: latest
-  when: ansible_os_family == 'Debian'
 
-# As of 2023-10-27 we need to install docker-compose on Amazon Linux 2 manually. Using the repo fails with a 404 due to a lack of
+# As of 2023-10-27 we need to install docker compose on Amazon Linux 2 manually. Using the repo fails with a 404 due to a lack of
 # https://download.docker.com/linux/rhel/2/x86_64/stable/repodata/repomd.xml
 - name: Install docker compose
+  when: ansible_os_family == 'RedHat'
   block:
     - name: Download Docker Compose binary
-      ansible.builtin.command: "curl -L https://github.com/docker/compose/releases/latest/download/docker-compose-{{ ansible_system | lower }}-{{ ansible_architecture }} -o /usr/local/bin/docker-compose"
-      become: true
-    - name: Set execute permissions
-      ansible.builtin.file:
-        path: /usr/local/bin/docker-compose
+      ansible.builtin.get_url:
+        url: "https://github.com/docker/compose/releases/latest/download/docker-compose-{{ ansible_system | lower }}-{{ ansible_architecture }}"
+        dest: /usr/local/bin/docker-compose
         mode: "0755"
       become: true
     - name: Test Docker Compose
       ansible.builtin.command: "/usr/local/bin/docker-compose version"
-  when: ansible_os_family == 'RedHat'

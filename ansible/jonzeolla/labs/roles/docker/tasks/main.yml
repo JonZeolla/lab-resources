@@ -1,6 +1,6 @@
 ---
 - name: Ensure supported OS
-  assert:
+  ansible.builtin.assert:
     that:
       - ansible_os_family in ['Debian', 'RedHat']
     fail_msg: "This playbook only supports Debian and RedHat based systems."
@@ -8,7 +8,7 @@
 
 - name: Update the apt cache
   ansible.builtin.apt:
-    update_cache: yes
+    update_cache: true
   when: ansible_os_family == 'Debian'
 
 - name: Install prereq packages
@@ -21,23 +21,24 @@
     state: latest
 
 - name: Download get-docker.sh
-  get_url:
+  ansible.builtin.get_url:
     url: https://get.docker.com
     dest: /tmp/get-docker.sh
+    mode: "0755"
 
 - name: Run get-docker.sh
-  shell: "bash /tmp/get-docker.sh"
+  ansible.builtin.command: "bash /tmp/get-docker.sh"
   args:
     creates: /usr/bin/docker
 
 - name: Clean up get-docker.sh
-  file:
+  ansible.builtin.file:
     path: /tmp/get-docker.sh
     state: absent
 
 - name: Add the current user to the docker group
-  become: yes
-  user:
+  become: true
+  ansible.builtin.user:
     name: "{{ ansible_user }}"
     groups: docker
-    append: yes
+    append: true

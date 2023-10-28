@@ -1,18 +1,20 @@
 ---
 - name: Ensure supported OS
-  assert:
+  ansible.builtin.assert:
     that:
       - ansible_os_family in ['Debian', 'RedHat']
     fail_msg: "This playbook only supports Debian and RedHat based systems."
   run_once: true
 
-- ansible.builtin.include_role:
-    name: docker-compose
+- name: Run docker compose setup
+  ansible.builtin.include_role:
+    name: docker_compose
 
 - name: Transfer files
-  copy:
+  ansible.builtin.copy:
     src: docker-compose.yml
     dest: "{{ home_dir }}"
+    mode: "0644"
 
 - name: Validate compose file
   ansible.builtin.command:
