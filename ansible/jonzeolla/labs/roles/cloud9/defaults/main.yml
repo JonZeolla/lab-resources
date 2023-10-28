@@ -1,2 +1,0 @@
----
-cloud9_home_dir: "/home/{{ lookup('ansible.builtin.env', 'HOST_USER') }}"

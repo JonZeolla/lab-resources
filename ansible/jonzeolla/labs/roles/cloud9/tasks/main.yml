@@ -7,13 +7,13 @@
 - name: Transfer resize script
   ansible.builtin.copy:
     src: resize-disk.sh
-    dest: "{{ cloud9_home_dir }}"
+    dest: "{{ home_dir }}"
     mode: "0755"
 
 - name: Resize the host disk to 40 GiB
   ansible.builtin.command:
     argv:
-      - "{{ cloud9_home_dir }}/resize-disk.sh"
+      - "{{ home_dir }}/resize-disk.sh"
       - 40
     creates: /tmp/.resize-disk
   when: touchfile_info.stat.exists == "false"
