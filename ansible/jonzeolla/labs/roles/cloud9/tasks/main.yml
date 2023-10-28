@@ -16,4 +16,3 @@
       - "{{ cloud9_home_dir }}/resize-disk.sh"
       - 40
     creates: /tmp/.resize-disk
-  when: not touchfile_info.stat.exists
