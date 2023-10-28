@@ -9,7 +9,6 @@
     src: resize-disk.sh
     dest: "{{ home_dir }}"
     mode: "0755"
-  when: script_info.stat.exists == "false"
 
 - name: Resize the host disk to 40 GiB
   ansible.builtin.command:
@@ -17,3 +16,4 @@
       - "{{ home_dir }}/resize-disk.sh"
       - 40
     creates: /tmp/.resize-disk
+  when: touchfile_info.stat.exists == "false"
