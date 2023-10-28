@@ -14,6 +14,11 @@
   ansible.builtin.include_role:
     name: homebrew
 
+- name: Install glab
+  community.general.homebrew:
+    name: glab
+    state: present
+
 - name: Run gitlab via docker compose
   environment:
     CI_SERVER_URL: "{{ ci_server_url }}"
