@@ -1,2 +1,5 @@
 ---
 gitlab_home_dir: "/home/{{ lookup('ansible.builtin.env', 'HOST_USER') }}"
+ci_server_url: "http://gitlab"
+runner_name: "default"
+gitlab_home: "{{ gitlab_home_dir }}/gitlab"

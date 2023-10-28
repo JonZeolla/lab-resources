@@ -1,0 +1,19 @@
+---
+- name: Ensure supported OS
+  ansible.builtin.assert:
+    that:
+      - ansible_os_family in ['Debian', 'RedHat']
+    fail_msg: "This playbook only supports Debian and RedHat based systems."
+  run_once: true
+
+- name: Install homebrew
+  block:
+    - name: Download homebrew installer
+      ansible.builtin.get_url:
+        url: https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh
+        dest: /tmp/install-homebrew.sh
+        mode: "0755"
+    - name: Install homebrew
+      become: true
+      ansible.builtin.command:
+        cmd: "echo | /tmp/install-homebrew.sh"
