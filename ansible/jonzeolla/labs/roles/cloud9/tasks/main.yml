@@ -17,4 +17,3 @@
       - "{{ home_dir }}/resize-disk.sh"
       - 40
     creates: /tmp/.resize-disk
-  when: touchfile_info.stat.exists == "false"
