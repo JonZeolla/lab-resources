@@ -18,7 +18,12 @@
 
 - name: Validate compose file
   ansible.builtin.command:
-    cmd: docker-compose --file docker-compose.yml config --quiet
+    argv:
+      - /usr/local/bin/docker-compose
+      - --file
+      - "{{ gitlab_home_dir }}/docker-compose.yml"
+      - config
+      - --quiet
     chdir: "{{ gitlab_home_dir }}"
   environment:
     GITLAB_HOME: "{{ gitlab_home_dir }}/gitlab"
@@ -26,14 +31,23 @@
 
 - name: Pull container images
   ansible.builtin.command:
-    cmd: docker-compose --file docker-compose.yml pull
+    argv:
+      - /usr/local/bin/docker-compose
+      - --file
+      - "{{ gitlab_home_dir }}/docker-compose.yml"
+      - pull
     chdir: "{{ gitlab_home_dir }}"
   register: compose_pull
   changed_when: "'Downloading' in compose_pull.stdout"
 
 - name: Start containers
   ansible.builtin.command:
-    cmd: docker-compose --file docker-compose.yml up --detach
+    argv:
+      - /usr/local/bin/docker-compose
+      - --file
+      - "{{ gitlab_home_dir }}/docker-compose.yml"
+      - up
+      - --detach
     chdir: "{{ gitlab_home_dir }}"
   register: compose_up
   changed_when: "'Started' in compose_up.stdout"
