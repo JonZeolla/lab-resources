@@ -1,2 +1,2 @@
 ---
-home_dir: "/home/{{ lookup('ansible.builtin.env', 'HOST_USER') }}"
+gitlab_home_dir: "/home/{{ lookup('ansible.builtin.env', 'HOST_USER') }}"

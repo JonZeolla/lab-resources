@@ -13,27 +13,27 @@
 - name: Transfer files
   ansible.builtin.copy:
     src: docker-compose.yml
-    dest: "{{ home_dir }}"
+    dest: "{{ gitlab_home_dir }}"
     mode: "0644"
 
 - name: Validate compose file
   ansible.builtin.command:
     cmd: docker compose --file docker-compose.yml config --quiet
-    chdir: "{{ home_dir }}"
+    chdir: "{{ gitlab_home_dir }}"
   environment:
-    GITLAB_HOME: "{{ home_dir }}/gitlab"
+    GITLAB_HOME: "{{ gitlab_home_dir }}/gitlab"
   changed_when: false
 
 - name: Pull container images
   ansible.builtin.command:
     cmd: docker compose --file docker-compose.yml pull
-    chdir: "{{ home_dir }}"
+    chdir: "{{ gitlab_home_dir }}"
   register: compose_pull
   changed_when: "'Downloading' in compose_pull.stdout"
 
 - name: Start containers
   ansible.builtin.command:
     cmd: docker compose --file docker-compose.yml up --detach
-    chdir: "{{ home_dir }}"
+    chdir: "{{ gitlab_home_dir }}"
   register: compose_up
   changed_when: "'Started' in compose_up.stdout"
