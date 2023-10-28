@@ -1,9 +1,3 @@
-- name: Check if resize script exists
-  ansible.builtin.stat:
-    path: "{{ home_dir }}/resize-disk.sh"
-  register: script_info
-  ignore_errors: true
-
 - name: Check if resize script touchfile exists
   ansible.builtin.stat:
     path: "/tmp/.resize-disk"
@@ -18,7 +12,9 @@
   when: script_info.stat.exists == "false"
 
 - name: Resize the host disk to 40 GiB
-  ansible.builtin.command: "{{ home_dir }}/resize-disk.sh 40"
-  args:
+  ansible.builtin.command:
+    argv:
+      - "{{ home_dir }}/resize-disk.sh"
+      - 40
     creates: /tmp/.resize-disk
   when: touchfile_info.stat.exists == "false"
