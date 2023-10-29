@@ -18,6 +18,7 @@
   community.general.homebrew:
     name: glab
     state: present
+    update_homebrew: true
 
 - name: Run gitlab via docker compose
   environment:

@@ -21,3 +21,12 @@
       copy:
         dest: /etc/profile.d/brew.sh
         content: 'PATH=$PATH:/home/linuxbrew/.linuxbrew/bin'
+    - name: Ensure $HOME/bin exists
+      ansible.builtin.file:
+        path: "{{ home_dir }}/bin"
+        state: directory
+    - name: Setup a symlink
+      ansible.builtin.file:
+        src: /home/linuxbrew/.linuxbrew/Homebrew/bin/brew
+        dest: /home/linuxbrew/.linuxbrew/bin/brew
+        state: link
