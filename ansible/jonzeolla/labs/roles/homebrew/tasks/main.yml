@@ -14,7 +14,6 @@
         dest: /tmp/install-homebrew.sh
         mode: "0755"
     - name: Install linuxbrew
-      become: true
       ansible.builtin.command:
         cmd: /tmp/install-homebrew.sh
     - name: Add brew to path
