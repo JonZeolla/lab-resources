@@ -28,7 +28,7 @@
     - name: Transfer files
       ansible.builtin.copy:
         src: docker-compose.yml
-        dest: "{{ gitlab_home_dir }}"
+        dest: "{{ home_dir }}"
         mode: "0644"
 
     - name: Validate compose file
@@ -36,10 +36,10 @@
         argv:
           - /usr/local/bin/docker-compose
           - --file
-          - "{{ gitlab_home_dir }}/docker-compose.yml"
+          - "{{ home_dir }}/docker-compose.yml"
           - config
           - --quiet
-        chdir: "{{ gitlab_home_dir }}"
+        chdir: "{{ home_dir }}"
       changed_when: false
 
     - name: Pull container images
@@ -47,9 +47,9 @@
         argv:
           - /usr/local/bin/docker-compose
           - --file
-          - "{{ gitlab_home_dir }}/docker-compose.yml"
+          - "{{ home_dir }}/docker-compose.yml"
           - pull
-        chdir: "{{ gitlab_home_dir }}"
+        chdir: "{{ home_dir }}"
       register: compose_pull
       changed_when: "'Downloading' in compose_pull.stdout"
 
@@ -58,10 +58,10 @@
         argv:
           - /usr/local/bin/docker-compose
           - --file
-          - "{{ gitlab_home_dir }}/docker-compose.yml"
+          - "{{ home_dir }}/docker-compose.yml"
           - up
           - --detach
-        chdir: "{{ gitlab_home_dir }}"
+        chdir: "{{ home_dir }}"
       register: compose_up
       changed_when: "'Started' in compose_up.stdout"
 
@@ -74,7 +74,7 @@
   ansible.builtin.command:
     argv:
       - /usr/local/bin/docker-compose
-    chdir: "{{ gitlab_home_dir }}"
+    chdir: "{{ home_dir }}"
   changed_when: false
   environment:
     REGISTRATION_TOKEN: "{{ registration_token }}" # TODO: We need to get this dynamically.
