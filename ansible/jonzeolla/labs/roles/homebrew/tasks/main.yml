@@ -27,6 +27,6 @@
         state: directory
     - name: Setup a symlink
       ansible.builtin.file:
-        src: /home/linuxbrew/.linuxbrew/Homebrew/bin/brew
-        dest: /home/linuxbrew/.linuxbrew/bin/brew
+        src: "{{ home_dir }}/bin/brew"
+        dest: /home/linuxbrew/.linuxbrew/Homebrew/bin/brew
         state: link
