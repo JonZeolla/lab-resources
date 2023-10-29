@@ -17,8 +17,8 @@
     install_recommends: no
   when: ansible_os_family == 'Debian'
 
-- name: Install prereqs (dnf)
-  ansible.builtin.dnf:
+- name: Install prereqs
+  ansible.builtin.packages:
     name:
       - ca-certificates
       - curl
