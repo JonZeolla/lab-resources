@@ -7,6 +7,7 @@
   run_once: true
 
 - name: Install prereqs (apt)
+  become: true
   ansible.builtin.apt:
     pkg:
       - ca-certificates
@@ -18,6 +19,7 @@
   when: ansible_os_family == 'Debian'
 
 - name: Install prereqs
+  become: true
   ansible.builtin.package:
     name:
       - ca-certificates
@@ -34,6 +36,7 @@
     mode: "0755"
 
 - name: Run get-docker.sh
+  become: true
   ansible.builtin.command: "bash /tmp/get-docker.sh"
   args:
     creates: /usr/bin/docker
