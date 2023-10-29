@@ -16,4 +16,4 @@
     - name: Install homebrew
       become: true
       ansible.builtin.command:
-        cmd: "echo | /tmp/install-homebrew.sh"
+        cmd: /tmp/install-homebrew.sh
