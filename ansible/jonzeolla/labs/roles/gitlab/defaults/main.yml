@@ -1,0 +1,4 @@
+---
+CI_SERVER_URL: "http://gitlab"
+RUNNER_NAME: "gitlab-runner"
+GITLAB_HOME: "{{ home_dir }}/gitlab"
