@@ -11,6 +11,7 @@
     name: docker
 
 - name: Install docker compose
+  become: true
   when: ansible_os_family == 'Debian'
   ansible.builtin.package:
     name:
@@ -20,6 +21,7 @@
 # As of 2023-10-27 we need to install docker compose on Amazon Linux 2 manually. Using the repo fails with a 404 due to a lack of
 # https://download.docker.com/linux/rhel/2/x86_64/stable/repodata/repomd.xml
 - name: Install docker compose
+  become: true
   when: ansible_os_family == 'RedHat'
   block:
     - name: Download Docker Compose binary

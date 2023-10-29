@@ -8,6 +8,7 @@
 
 - name: Install prereqs (apt)
   become: true
+  when: ansible_os_family == 'Debian'
   ansible.builtin.apt:
     pkg:
       - ca-certificates
@@ -16,10 +17,10 @@
       - sudo
     update_cache: true
     install_recommends: no
-  when: ansible_os_family == 'Debian'
 
 - name: Install prereqs
   become: true
+  when: ansible_os_family == 'RedHat'
   ansible.builtin.package:
     name:
       - ca-certificates
@@ -27,7 +28,6 @@
       - jq
       - sudo
     state: latest
-  when: ansible_os_family == 'RedHat'
 
 - name: Download get-docker.sh
   ansible.builtin.get_url:
