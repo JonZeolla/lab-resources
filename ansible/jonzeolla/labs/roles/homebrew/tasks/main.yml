@@ -16,7 +16,7 @@
     - name: Install linuxbrew
       become: true
       ansible.builtin.command:
-        cmd: /tmp/install-linuxbrew.sh
+        cmd: /tmp/install-homebrew.sh
     - name: Add brew to path
       become: true
       copy:
