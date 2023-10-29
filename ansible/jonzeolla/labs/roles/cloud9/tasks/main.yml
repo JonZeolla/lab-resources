@@ -1,3 +1,4 @@
+---
 - name: Transfer resize script
   ansible.builtin.copy:
     src: resize-disk.sh
@@ -9,4 +10,3 @@
     argv:
       - "{{ cloud9_home_dir }}/resize-disk.sh"
       - 40
-    creates: /tmp/.resize-disk
