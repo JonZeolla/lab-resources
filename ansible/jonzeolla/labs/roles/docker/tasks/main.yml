@@ -6,19 +6,26 @@
     fail_msg: "This playbook only supports Debian and RedHat based systems."
   run_once: true
 
-- name: Update the apt cache
+- name: Install prereqs (apt)
   ansible.builtin.apt:
+    pkg:
+      - ca-certificates
+      - curl
+      - jq
+      - sudo
     update_cache: true
+    install_recommends: no
   when: ansible_os_family == 'Debian'
 
-- name: Install prereq packages
-  ansible.builtin.package:
+- name: Install prereqs (dnf)
+  ansible.builtin.dnf:
     name:
       - ca-certificates
       - curl
       - jq
       - sudo
     state: latest
+  when: ansible_os_family == 'RedHat'
 
 - name: Download get-docker.sh
   ansible.builtin.get_url:
