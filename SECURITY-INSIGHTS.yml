@@ -3,7 +3,7 @@ header:
   schema-version: 1.0.0
   expiration-date: '2023-10-25T00:00:00.000Z'
   project-url: https://github.com/jonzeolla/lab-resources
-  project-release: 0.0.32
+  project-release: 0.0.33
 project-lifecycle:
   status: active
   bug-fixes-only: false
