@@ -6,14 +6,19 @@
     fail_msg: "This playbook only supports Debian and RedHat based systems."
   run_once: true
 
-- name: Install homebrew
+- name: Install linuxbrew
   block:
-    - name: Download homebrew installer
+    - name: Download linuxbrew installer
       ansible.builtin.get_url:
         url: https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh
         dest: /tmp/install-homebrew.sh
         mode: "0755"
-    - name: Install homebrew
+    - name: Install linuxbrew
       become: true
       ansible.builtin.command:
-        cmd: /tmp/install-homebrew.sh
+        cmd: /tmp/install-linuxbrew.sh
+    - name: Add brew to path
+      become: true
+      copy:
+        dest: /etc/profile.d/brew.sh
+        content: 'PATH=$PATH:/home/linuxbrew/.linuxbrew/bin'
