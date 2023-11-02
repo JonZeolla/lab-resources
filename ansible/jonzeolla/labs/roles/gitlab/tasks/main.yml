@@ -6,6 +6,10 @@
     fail_msg: "This playbook only supports Debian and RedHat based systems."
   run_once: true
 
+- name: Detect and setup Cloud9 as needed
+  ansible.builtin.include_role:
+    name: jonzeolla.labs.cloud9
+
 - name: Run docker_compose role
   ansible.builtin.include_role:
     name: docker_compose
