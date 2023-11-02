@@ -9,7 +9,7 @@
         image_ids: "{{ ansible_ec2_ami_id }}"
 
 - name: Resize the host disk to 40 GiB
-  when:  >
+  when: >
     ec2_ami_facts['images'][0]['image_location'].startswith('amazon/Cloud9') and
     ec2_ami_facts['images'][0]['name'].startswith('Cloud9') and
     ec2_ami_facts['images'][0]['owner_id'] == '845575274112'
