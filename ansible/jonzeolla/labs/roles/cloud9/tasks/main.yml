@@ -1,4 +1,9 @@
 ---
+- name: Install prereq python packages
+  ansible.builtin.pip:
+    name: boto3
+    state: latest
+
 - name: Gather info needed to detect Cloud9 images
   block:
     - name: Gather EC2 metadata facts
