@@ -7,12 +7,13 @@
     - name: Gather AMI details
       amazon.aws.ec2_ami_info:
         image_ids: "{{ ansible_ec2_ami_id }}"
+      register: ami_info
 
 - name: Resize the host disk to 40 GiB
   when: >
-    ec2_ami_facts['images'][0]['image_location'].startswith('amazon/Cloud9') and
-    ec2_ami_facts['images'][0]['name'].startswith('Cloud9') and
-    ec2_ami_facts['images'][0]['owner_id'] == '845575274112'
+    ami_info['images'][0]['image_location'].startswith('amazon/Cloud9') and
+    ami_info['images'][0]['name'].startswith('Cloud9') and
+    ami_info['images'][0]['owner_id'] == '845575274112'
   block:
     - name: Transfer resize script
       ansible.builtin.copy:
