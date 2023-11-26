@@ -22,7 +22,7 @@ In order to cut a release, you must additionally have `pipenv` and `python3` ins
 
 ```bash
 # Create the release
-task release minor # or major, or patch
+task release -- minor # or major, or patch
 
 # Push it!  (Subject to branch policies)
 git push --atomic origin $(git branch --show-current) --follow-tags
