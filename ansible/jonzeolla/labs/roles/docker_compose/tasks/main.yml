@@ -34,3 +34,5 @@
 
     - name: Test Docker Compose
       ansible.builtin.command: docker-compose version
+      environment:
+        PATH: "{{ ansible_env.PATH }}"
