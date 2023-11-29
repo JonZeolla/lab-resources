@@ -1,7 +1,9 @@
 ---
 - name: Install prereq python packages
   ansible.builtin.pip:
-    name: boto3
+    name:
+      - boto3
+      - packaging
     state: latest
 
 - name: Gather info needed to detect Cloud9 images
@@ -15,10 +17,11 @@
       register: ami_info
 
 - name: Resize the host disk to 40 GiB
+  # Note: Amazon changes the Account ID ("owner_id") periodically
+  # so we cannot restrict it in the below when clause
   when: >
     ami_info['images'][0]['image_location'].startswith('amazon/Cloud9') and
-    ami_info['images'][0]['name'].startswith('Cloud9') and
-    ami_info['images'][0]['owner_id'] == '845575274112'
+    ami_info['images'][0]['name'].startswith('Cloud9')
   block:
     - name: Transfer resize script
       ansible.builtin.copy:
@@ -30,4 +33,17 @@
       ansible.builtin.command:
         argv:
           - "{{ home_dir }}/resize-disk.sh"
+          - 40
+
+    - name: Transfer disk checking script
+      ansible.builtin.copy:
+        src: check-disk.sh
+        dest: "{{ home_dir }}"
+        mode: "0755"
+
+    # This is checking for 40GB not GiB to give some breathing room
+    - name: Ensure the host disk is at least 40 GB
+      ansible.builtin.command:
+        argv:
+          - "{{ home_dir }}/check-disk.sh"
           - 40

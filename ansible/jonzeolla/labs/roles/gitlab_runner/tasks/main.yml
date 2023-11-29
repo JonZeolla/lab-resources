@@ -32,7 +32,9 @@
 
 - name: Retrieve CI Server URL
   block:
-    - name: Install jq; custom to Amazon Linux 2 due to it using _very_ old components
+    - name: >
+        Install via command on Amazon Linux 2 due to a lack of dnf, and
+        that ansible.builtin.yum only works with python 2.7
       when: >
         ansible_distribution == 'Amazon' and
         ansible_distribution_version == '2'

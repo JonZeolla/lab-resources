@@ -18,7 +18,8 @@
       - docker-compose-plugin
     state: latest
 
-# As of 2023-10-27 we need to install docker compose on Amazon Linux 2 manually. Using the repo fails with a 404 due to a lack of
+# As of 2023-10-27 we need to install docker compose on Amazon Linux 2 manually.
+# Using the repo fails with a 404 due to a lack of
 # https://download.docker.com/linux/rhel/2/x86_64/stable/repodata/repomd.xml
 - name: Install docker compose
   become: true
@@ -30,5 +31,6 @@
         dest: /usr/local/bin/docker-compose
         mode: "0755"
       become: true
+
     - name: Test Docker Compose
-      ansible.builtin.command: "/usr/local/bin/docker-compose version"
+      ansible.builtin.command: docker-compose version
