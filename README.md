@@ -36,5 +36,5 @@ If you want to troubleshoot issues using this as a part of a workshop, create a 
 ```bash
 repo=policy-as-code
 role=cloud9
-docker run -v ~/environment/${repo}/lab-resources/ansible/jonzeolla/labs/roles/${role}/tasks/main.yml:/root/.ansible/collections/ansible_collections/jonzeolla/labs/roles/${role}/tasks/main.yml -e CLIENT_IP -e HOST_USER="${USER}" --network host -v ~/logs:/root/logs -v ~/.ssh:/root/.ssh jonzeolla/labs:${repo}
+docker run -v ~/environment/${repo}/lab-resources/ansible/jonzeolla/labs/roles/${role}/tasks/main.yml:/root/.ansible/collections/ansible_collections/jonzeolla/labs/roles/${role}/tasks/main.yml --network host -v /:/host jonzeolla/labs:${repo}
 ```
