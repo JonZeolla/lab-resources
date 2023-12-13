@@ -62,8 +62,8 @@
 - name: Setup the filesystem
   ansible.builtin.file:
     path: "{{ home_dir }}/.ssh/known_hosts"
-    owner: "{{ lookup('ansible.builtin.env', 'HOST_USER') }}"
-    group: "{{ lookup('ansible.builtin.env', 'HOST_USER') }}"
+    owner: "{{ host_user }}"
+    group: "{{ host_user }}"
   become: true
 
 - name: Gather EC2 metadata
