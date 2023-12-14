@@ -14,6 +14,7 @@
     - name: Gather AMI details
       amazon.aws.ec2_ami_info:
         image_ids: "{{ ansible_ec2_ami_id }}"
+        region: "{{ ansible_ec2_placement_region }}"
       register: ami_info
 
 - name: Resize the host disk to 40 GiB
