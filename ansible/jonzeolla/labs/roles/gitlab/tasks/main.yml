@@ -86,15 +86,10 @@
   set_fact:
     registration_token: "{{ lookup('ansible.builtin.password', '/dev/null', length=50, chars=['ascii_letters', 'digits', 'special']) }}"
 
-- name: Retrieve and set external IP
+- name: Retrieve and set external IP (depends on ec2_metadata_facts above)
   when: external_ip is not defined
-  block:
-    - name: Gather EC2 metadata
-      amazon.aws.ec2_metadata_facts:
-
-    - name: Set the external_ip fact to EC2 instance's public IPv4 IP
-      ansible.builtin.set_fact:
-        external_ip: "{{ ansible_ec2_public_ipv4 }}"
+  ansible.builtin.set_fact:
+    external_ip: "{{ ansible_ec2_public_ipv4 }}"
 
 - name: Ensure the correct network access
   amazon.aws.ec2_security_group:
