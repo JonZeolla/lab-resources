@@ -52,10 +52,12 @@ if [[ -e "/dev/xvda" && $(readlink -f /dev/xvda) = "/dev/xvda" ]]; then
 # Rewrite the partition table so that the partition takes up all the space that it can.
   sudo_if_needed growpart /dev/xvda 1
 # Expand the size of the file system.
-# Check if we're on AL2
+# Check if we're on AL2 or AL2023
   STR=$(cat /etc/os-release)
-  SUB="VERSION_ID=\"2\""
-  if [[ "$STR" == *"$SUB"* ]]; then
+  SUBAL2="VERSION_ID=\"2\""
+  SUBAL2023="VERSION_ID=\"2023\""
+
+  if [[ "$STR" == *"$SUBAL2"* || "$STR" == *"$SUBAL2023"* ]]; then
     sudo_if_needed xfs_growfs -d /
   else
     sudo_if_needed resize2fs /dev/xvda1
@@ -66,10 +68,12 @@ else
   sudo_if_needed growpart /dev/nvme0n1 1
 
 # Expand the size of the file system.
-# Check if we're on AL2
+# Check if we're on AL2 or AL2023
   STR=$(cat /etc/os-release)
-  SUB="VERSION_ID=\"2\""
-  if [[ "$STR" == *"$SUB"* ]]; then
+  SUBAL2="VERSION_ID=\"2\""
+  SUBAL2023="VERSION_ID=\"2023\""
+  if [[ "$STR" == *"$SUBAL2"* || "$STR" == *"$SUBAL2023"* ]]
+  then
     sudo_if_needed xfs_growfs -d /
   else
     sudo_if_needed resize2fs /dev/nvme0n1p1
