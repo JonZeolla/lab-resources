@@ -17,7 +17,7 @@
         region: "{{ ansible_ec2_placement_region }}"
       register: ami_info
 
-- name: Resize the host disk to 40 GiB
+- name: Resize the host disk to 40 GiB and expand the partition mounted to /
   # Note: Amazon changes the Account ID ("owner_id") periodically
   # so we cannot restrict it in the below when clause
   when: >
@@ -38,7 +38,7 @@
 
     - name: Transfer disk checking script
       ansible.builtin.copy:
-        src: check-disk.sh
+        src: check-partition.sh
         dest: "{{ home_dir }}"
         mode: "0755"
 
@@ -46,5 +46,5 @@
     - name: Ensure the host disk is at least 40 GB
       ansible.builtin.command:
         argv:
-          - "{{ home_dir }}/check-disk.sh"
+          - "{{ home_dir }}/check-partition.sh"
           - 40

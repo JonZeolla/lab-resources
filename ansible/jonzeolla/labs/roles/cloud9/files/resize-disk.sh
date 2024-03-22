@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# See https://docs.aws.amazon.com/cloud9/latest/user-guide/move-environment.html#move-environment-resize
+# This is a lightly modified version of https://docs.aws.amazon.com/cloud9/latest/user-guide/move-environment.html#move-environment-resize
 
 touchfile="/tmp/.resize-disk"
 if [[ -r "${touchfile}" ]]; then
@@ -19,7 +19,7 @@ function sudo_if_needed() {
 aws sts get-caller-identity || exit 1
 
 # Specify the desired volume size in GiB as a command line argument. If not specified, default to 20 GiB.
-SIZE=${1:-20}
+SIZE=${1:-40}
 
 # Get the ID of the environment host Amazon EC2 instance.
 TOKEN=$(curl -s -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 60")
@@ -44,36 +44,30 @@ while [ \
     --filters Name=modification-state,Values="optimizing","completed" \
     --query "length(VolumesModifications)"\
     --output text)" != "1" ]; do
-sleep 1
+  sleep 1
 done
 
 # Check if we're on an NVMe filesystem
 if [[ -e "/dev/xvda" && $(readlink -f /dev/xvda) = "/dev/xvda" ]]; then
-# Rewrite the partition table so that the partition takes up all the space that it can.
-  sudo_if_needed growpart /dev/xvda 1
-# Expand the size of the file system.
-# Check if we're on AL2
-  STR=$(cat /etc/os-release)
-  SUB="VERSION_ID=\"2\""
-  if [[ "$STR" == *"$SUB"* ]]; then
-    sudo_if_needed xfs_growfs -d /
-  else
-    sudo_if_needed resize2fs /dev/xvda1
-  fi
-
+  DISK="/dev/xvda"
+  PARTITION="${DISK}1"
 else
-# Rewrite the partition table so that the partition takes up all the space that it can.
-  sudo_if_needed growpart /dev/nvme0n1 1
+  DISK="/dev/nvme0n1"
+  PARTITION="${DISK}p1"
+fi
 
-# Expand the size of the file system.
-# Check if we're on AL2
-  STR=$(cat /etc/os-release)
-  SUB="VERSION_ID=\"2\""
-  if [[ "$STR" == *"$SUB"* ]]; then
-    sudo_if_needed xfs_growfs -d /
-  else
-    sudo_if_needed resize2fs /dev/nvme0n1p1
-  fi
+STR=$(cat /etc/os-release)
+SUBAL2="VERSION_ID=\"2\""
+SUBAL2023="VERSION_ID=\"2023\""
+
+# Rewrite the partition table so that the partition takes up all the space that it can.
+sudo_if_needed growpart "${DISK}" 1
+
+# Check if we're on AL2 or AL2023 (indirectly checking for XFS) and extend the filesystem appropriately
+if [[ "$STR" == *"$SUBAL2"* || "$STR" == *"$SUBAL2023"* ]]; then
+  sudo_if_needed xfs_growfs -d /
+else
+  sudo_if_needed resize2fs "${PARTITION}"
 fi
 
 touch "${touchfile}"
