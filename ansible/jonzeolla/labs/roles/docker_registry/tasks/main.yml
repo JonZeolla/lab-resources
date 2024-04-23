@@ -58,3 +58,13 @@
       REGISTRY_HTTP_TLS_CERTIFICATE: /certs/cert.pem
       REGISTRY_HTTP_TLS_KEY: /certs/key.pem
     detach: true
+
+- name: Copy Dockerfile to the remote server
+  ansible.builtin.copy:
+    src: "Dockerfile"
+    dest: "{{ home_dir }}"
+
+- name: Build and push an example docker image
+  ansible.builtin.command:
+    cmd: docker build --push --tag example --tag localhost:443/example .
+    chdir: "{{ home_dir }}"
