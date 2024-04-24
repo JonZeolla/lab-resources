@@ -59,12 +59,23 @@
       REGISTRY_HTTP_TLS_KEY: /certs/key.pem
     detach: true
 
+- name: Wait for the registry to begin listening
+  ansible.builtin.wait_for:
+    host: localhost
+    port: 443
+    state: started
+    delay: 5
+
 - name: Copy Dockerfile to the remote server
   ansible.builtin.copy:
     src: "Dockerfile"
     dest: "{{ home_dir }}"
 
-- name: Build and push an example docker image
+- name: Build an example docker image
   ansible.builtin.command:
-    cmd: docker build --push --tag example --tag localhost:443/example .
+    cmd: docker build --tag example --tag localhost:443/example .
     chdir: "{{ home_dir }}"
+
+- name: Push the image into the registry
+  ansible.builtin.command:
+    cmd: docker push localhost:443/example
