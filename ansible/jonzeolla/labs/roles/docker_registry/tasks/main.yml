@@ -1,0 +1,70 @@
+---
+- name: Ensure supported OS
+  ansible.builtin.assert:
+    that:
+      - ansible_os_family in ['Debian', 'RedHat']
+    fail_msg: "This playbook only supports Debian and RedHat based systems."
+  run_once: true
+
+- name: Run docker_compose role
+  ansible.builtin.include_role:
+    name: docker_compose
+
+- name: Create a temporary working directory
+  ansible.builtin.tempfile:
+    state: directory
+  register: tmp_dir
+
+- name: Create certs directory inside temporary directory
+  ansible.builtin.file:
+    path: "{{ tmp_dir.path }}/certs"
+    state: directory
+
+- name: Generate a private key
+  community.crypto.openssl_privatekey:
+    path: "{{ tmp_dir.path }}/certs/key.pem"
+    size: 4096
+
+- name: Generate a certificate signing request
+  community.crypto.openssl_csr:
+    path: "{{ tmp_dir.path }}/certs/csr.pem"
+    privatekey_path: "{{ tmp_dir.path }}/certs/key.pem"
+    common_name: "registry"
+    subject_alt_name:
+      - "DNS:registry"
+
+- name: Generate a self-signed X.509 certificate
+  community.crypto.x509_certificate:
+    path: "{{ tmp_dir.path }}/certs/cert.pem"
+    privatekey_path: "{{ tmp_dir.path }}/certs/key.pem"
+    csr_path: "{{ tmp_dir.path }}/certs/csr.pem"
+    provider: selfsigned
+    selfsigned_not_after: +60d
+    selfsigned_not_before: +0s
+    force: true
+
+- name: Deploy the Docker registry container with the certificates
+  community.docker.docker_container:
+    name: registry
+    image: registry:2
+    state: started
+    restart_policy: always
+    ports:
+      - "443:443"
+    volumes:
+      - "{{ tmp_dir.path }}/certs:/certs"
+    env:
+      REGISTRY_HTTP_ADDR: 0.0.0.0:443
+      REGISTRY_HTTP_TLS_CERTIFICATE: /certs/cert.pem
+      REGISTRY_HTTP_TLS_KEY: /certs/key.pem
+    detach: true
+
+- name: Copy Dockerfile to the remote server
+  ansible.builtin.copy:
+    src: "Dockerfile"
+    dest: "{{ home_dir }}"
+
+- name: Build and push an example docker image
+  ansible.builtin.command:
+    cmd: docker build --push --tag example --tag localhost:443/example .
+    chdir: "{{ home_dir }}"
