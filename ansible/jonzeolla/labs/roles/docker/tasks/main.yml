@@ -18,21 +18,6 @@
     update_cache: true
     install_recommends: no
 
-- name: Install prereqs
-  become: true
-  when: >
-    ansible_os_family == 'RedHat' and
-    ansible_distribution == 'Amazon' and
-    ansible_distribution_version == '2' and
-    ansible_python_version is ansible.builtin.version('2.7', '<=')
-  ansible.builtin.yum:
-    name:
-      - ca-certificates
-      - curl
-      - jq
-      - sudo
-    state: latest
-
 - name: >
     Install via command on Amazon Linux 2 due to a lack of dnf, and
     that ansible.builtin.yum only works with python 2.7
