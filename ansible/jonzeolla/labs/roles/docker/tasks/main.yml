@@ -61,10 +61,6 @@
     # Necessary due to curl/curl-minimal. skip_broken wasn't sufficient
     allowerasing: true
 
-- name: Detect and setup Cloud9 as needed
-  ansible.builtin.include_role:
-    name: jonzeolla.labs.cloud9
-
 - name: Download get-docker.sh
   ansible.builtin.get_url:
     url: https://get.docker.com
