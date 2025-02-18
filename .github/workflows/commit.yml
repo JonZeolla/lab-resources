@@ -9,9 +9,6 @@ on:
     branches:
       - main
 
-env:
-  python_version: "3.12"
-
 defaults:
   run:
     shell: 'bash --noprofile --norc -Eeuo pipefail {0}'
@@ -23,17 +20,19 @@ jobs:
     steps:
       - name: Checkout the repository
         uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: ${{ env.python_version }}
-      - uses: actions/cache@v4
-        with:
-          path: ~/.local/share/virtualenvs
-          key: ${{ runner.os }}-python-${{ env.python_version }}-pipenv-${{ hashFiles('Pipfile.lock') }}
+      - name: Install the latest version of uv
+        uses: astral-sh/setup-uv@v5
       - name: Install Task
         uses: arduino/setup-task@v2
       - name: Initialize the repo
         run: task -v init
+      - name: Cache the pre-commit cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pre-commit
+          key: ${{ runner.os }}-pre-commit-${{ hashFiles('.pre-commit-config.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pre-commit-
       - name: Lint
         run: task -v lint
   test:
@@ -41,16 +40,11 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - name: Checkout the repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - uses: actions/setup-python@v4
-        with:
-          python-version: ${{ env.python_version }}
-      - uses: actions/cache@v3
-        with:
-          path: ~/.local/share/virtualenvs
-          key: ${{ runner.os }}-python-${{ env.python_version }}-pipenv-${{ hashFiles('Pipfile.lock') }}
+      - name: Install the latest version of uv
+        uses: astral-sh/setup-uv@v5
       - name: Install Task
         uses: arduino/setup-task@v2
       - name: Initialize the repo

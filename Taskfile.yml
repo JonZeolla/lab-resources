@@ -12,7 +12,7 @@ vars:
   IMAGE_NAME: jonzeolla/policy-as-code-setup
   PYTHON_VERSION: 3.12
   SUPPORTED_PLATFORMS: 'linux/amd64,linux/arm64'
-  EASY_INFRA_VERSION: '2024.04.01'
+  EASY_INFRA_VERSION: '2025.01.04'
   VERSION:
     sh: cat '{{.ROOT_DIR}}/VERSION'
   LOCAL_PLATFORM:
@@ -34,15 +34,13 @@ vars:
 silent: true
 
 tasks:
-  init-pipenv:
-    desc: Initializes the pipenv virtual environment if Pipfile.lock changes
+  init-uv:
+    desc: Initializes uv if uv.lock changes
     internal: true
     sources:
-      - Pipfile.lock
-    preconditions:
-      - which pipenv || python -m pip install --upgrade pipenv
+      - uv.lock
     cmds:
-      - pipenv install --deploy --ignore-pipfile --dev
+      - uv sync
 
   init-pre-commit:
     desc: Install the pre-commit hooks
@@ -55,22 +53,23 @@ tasks:
       - '! test -d .git'
     cmds:
       # Don't run this in pipelines
-      - '{{if ne .GITHUB_ACTIONS "true"}}pipenv run pre-commit install{{end}}'
+      - '{{if ne .GITHUB_ACTIONS "true"}}uv run pre-commit install{{end}}'
 
   init:
     desc: Initialize the repo for local use; intended to be run after git clone
     cmds:
-      - task: init-pipenv
+      - task: init-uv
       - task: init-pre-commit
 
   lock:
-    desc: Generate a Pipfile.lock if Pipfile changed from last run
+    desc: Update uv.lock if pyproject.toml has changed
+    internal: true
     sources:
-      - Pipfile
+      - pyproject.toml
     generates:
-      - Pipfile.lock
+      - uv.lock
     cmds:
-      - pipenv lock
+      - uv lock
 
   runner-curl-install:
     desc: Install something on a GitHub Actions runner via curl
@@ -109,22 +108,19 @@ tasks:
   lint:
     desc: Run the linter(s)
     platforms: [linux, darwin]
+    deps: [clean]
     vars:
-      INPUT_AUTO_FIX: '{{.INPUT_AUTO_FIX | default ""}}'
-      INPUT_DISABLE_MYPY: '{{.INPUT_DISABLE_MYPY | default ""}}'
-      INPUT_EXCLUDE: '{{.INPUT_EXCLUDE | default ".*ansible/jonzeolla/labs/roles/docker_registry/files/Dockerfile$"}}'
-      INPUT_LOG_LEVEL: '{{.INPUT_LOG_LEVEL | default ""}}'
-    preconditions:
-      - sh: |
-          docker pull seiso/goat:latest || \
-            echo "Failed to pull the goat, continuing anyway..."
+      # Compare our local HEAD to the origin's HEAD commit, or the prior commit if it's a commit to main
+      FROM_REF:
+        sh:
+          if [ "${GITHUB_REF:-}" == 'refs/heads/main' ]; then echo 'origin/main^'; else echo 'origin/main'; fi
+    env:
+      GITHUB_TOKEN: '{{.GITHUB_TOKEN}}'
     cmds:
-      - |
-        docker run --env INPUT_AUTO_FIX="{{.INPUT_AUTO_FIX}}" \
-                   --env INPUT_DISABLE_MYPY="{{.INPUT_DISABLE_MYPY}}" \
-                   --env INPUT_EXCLUDE="{{.INPUT_EXCLUDE}}" \
-                   --env INPUT_LOG_LEVEL="{{.INPUT_LOG_LEVEL}}" \
-                   --rm -v "{{.ROOT_DIR}}:/goat" seiso/goat:latest
+      - git fetch origin main --depth 2
+      - uv run pre-commit run --all-files --from-ref {{.FROM_REF}} --to-ref HEAD
+      # Remove the garbage in the pre-commit cache
+      - uv run pre-commit gc 1>/dev/null
 
   build:
     desc: Build the project; docker images, compiled binaries, etc.
@@ -143,7 +139,7 @@ tasks:
         sh: git tag -l
       BUILD_VERSION:
         sh: |
-          pipenv run python -c '
+          uv run python -c '
           version_string = "v{{.VERSION}}"
           repo_tags = []
           {{range $tag := .REPO_TAGS | splitLines -}}
@@ -158,7 +154,7 @@ tasks:
               build_version = f"{{.VERSION}}-{{.COMMIT_HASH_SHORT}}"
           print(build_version)'
     cmds:
-      - docker run -u 0 -v .:/iac seiso/easy_infra:{{.EASY_INFRA_VERSION}}-ansible ansible-galaxy collection build ansible/jonzeolla/labs/ --force
+      - docker run -u 0 -v $(pwd):/iac seiso/easy_infra:{{.EASY_INFRA_VERSION}}-ansible ansible-galaxy collection build ansible/jonzeolla/labs/ --force
 
   test:
     desc: Run the project tests
@@ -168,7 +164,7 @@ tasks:
     status:
       - '{{if eq .PLATFORM .LOCAL_PLATFORM}}exit 1{{end}}'
     cmds:
-      - docker run -u 0 -v .:/iac seiso/easy_infra:{{.EASY_INFRA_VERSION}}-ansible ansible-galaxy collection install jonzeolla-labs-{{.VERSION}}.tar.gz
+      - docker run -u 0 -v $(pwd):/iac seiso/easy_infra:{{.EASY_INFRA_VERSION}}-ansible ansible-galaxy collection install jonzeolla-labs-{{.VERSION}}.tar.gz
 
   clean:
     desc: Clean up build artifacts, cache files/directories, temp files, etc.
@@ -176,6 +172,7 @@ tasks:
       - find {{.ROOT_DIR}} -type f -name '.DS_Store' -delete
       - find {{.ROOT_DIR}} -type f -name '.Thumbs.db' -delete
       - find {{.ROOT_DIR}} -type d -name '.task' -exec rm -rf {} +
+      - find {{.ROOT_DIR}} -type d -name '.venv' -exec rm -rf {} +
       - find {{.ROOT_DIR}} -type f -name 'jonzeolla.labs-*.tar.gz' -delete
 
   release:
@@ -223,9 +220,9 @@ tasks:
       # Better conditional syntax is pending https://github.com/go-task/task/issues/608
       - >
         {{if eq .VERSIONING "CalVer"}}
-          pipenv run bumpversion --config-file setup.cfg --new-version {{.RELEASE_VERSION}} unusedpart
+          uv run bumpversion --config-file setup.cfg --new-version {{.RELEASE_VERSION}} unusedpart
         {{else if eq .VERSIONING "SemVer"}}
-          pipenv run bumpversion --config-file setup.cfg {{.RELEASE_TYPE}}
+          uv run bumpversion --config-file setup.cfg {{.RELEASE_TYPE}}
         {{else}}
           echo "Invalid VERSIONING var"; exit 1
         {{end}}
@@ -234,10 +231,7 @@ tasks:
     desc: Update the project dev and runtime dependencies, and other misc components
     cmds:
       - task: lock
-      - pipenv run pre-commit autoupdate --bleeding-edge --freeze
-      - >
-        docker run --rm -v "${PWD}:/usr/src/app" -w /usr/src/app python:{{.PYTHON_VERSION}}-slim /bin/bash
-        -c "python3 -m pip install --upgrade pipenv &>/dev/null && pipenv update"
+      - uv run pre-commit autoupdate --bleeding-edge --freeze
 
   pipeline-git-init:
     desc: Initialize git configs in the pipeline
