@@ -154,7 +154,7 @@ tasks:
               build_version = f"{{.VERSION}}-{{.COMMIT_HASH_SHORT}}"
           print(build_version)'
     cmds:
-      - docker run -u 0 -v .:/iac seiso/easy_infra:{{.EASY_INFRA_VERSION}}-ansible ansible-galaxy collection build ansible/jonzeolla/labs/ --force
+      - docker run -u 0 -v $(pwd):/iac seiso/easy_infra:{{.EASY_INFRA_VERSION}}-ansible ansible-galaxy collection build ansible/jonzeolla/labs/ --force
 
   test:
     desc: Run the project tests
@@ -164,7 +164,7 @@ tasks:
     status:
       - '{{if eq .PLATFORM .LOCAL_PLATFORM}}exit 1{{end}}'
     cmds:
-      - docker run -u 0 -v .:/iac seiso/easy_infra:{{.EASY_INFRA_VERSION}}-ansible ansible-galaxy collection install jonzeolla-labs-{{.VERSION}}.tar.gz
+      - docker run -u 0 -v $(pwd):/iac seiso/easy_infra:{{.EASY_INFRA_VERSION}}-ansible ansible-galaxy collection install jonzeolla-labs-{{.VERSION}}.tar.gz
 
   clean:
     desc: Clean up build artifacts, cache files/directories, temp files, etc.
