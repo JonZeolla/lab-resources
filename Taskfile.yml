@@ -110,16 +110,17 @@ tasks:
     platforms: [linux, darwin]
     deps: [clean]
     vars:
-      INPUT_AUTO_FIX: '{{.INPUT_AUTO_FIX | default ""}}'
-      INPUT_DISABLE_MYPY: '{{.INPUT_DISABLE_MYPY | default ""}}'
-      INPUT_EXCLUDE: '{{.INPUT_EXCLUDE | default ".*ansible/jonzeolla/labs/roles/docker_registry/files/Dockerfile$"}}'
-      INPUT_LOG_LEVEL: '{{.INPUT_LOG_LEVEL | default ""}}'
-    preconditions:
-      - sh: |
-          docker pull seiso/goat:latest || \
-            echo "Failed to pull the goat, continuing anyway..."
+      # Compare our local HEAD to the origin's HEAD commit, or the prior commit if it's a commit to main
+      FROM_REF:
+        sh:
+          if [ "${GITHUB_REF:-}" == 'refs/heads/main' ]; then echo 'origin/main^'; else echo 'origin/main'; fi
+    env:
+      GITHUB_TOKEN: '{{.GITHUB_TOKEN}}'
     cmds:
-      - echo "Implement pre-commit"
+      - git fetch origin main --depth 2
+      - pre-commit run --all-files --from-ref {{.FROM_REF}} --to-ref HEAD
+      # Remove the garbage in the pre-commit cache
+      - pre-commit gc 1>/dev/null
 
   build:
     desc: Build the project; docker images, compiled binaries, etc.
