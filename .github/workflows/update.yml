@@ -29,9 +29,9 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.cache/pre-commit
-          key: ${{ runner.os }}-pre-commit-${{ hashFiles('.pre-commit-config.yaml') }}
+          key: ${{ runner.os }}-${{ runner.arch }}-pre-commit-${{ hashFiles('.pre-commit-config.yaml') }}
           restore-keys: |
-            ${{ runner.os }}-pre-commit-
+            ${{ runner.os }}-${{ runner.arch}}-pre-commit-
       - name: Update the repository
         run: task -v update
       - name: Create or update a pull request
