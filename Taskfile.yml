@@ -230,7 +230,8 @@ tasks:
   update:
     desc: Update the project dev and runtime dependencies, and other misc components
     cmds:
-      - task: lock
+      - uv tool upgrade --all
+      - uv lock --upgrade
       - uv run pre-commit autoupdate --bleeding-edge --freeze
 
   pipeline-git-init:
