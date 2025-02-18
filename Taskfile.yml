@@ -12,7 +12,7 @@ vars:
   IMAGE_NAME: jonzeolla/policy-as-code-setup
   PYTHON_VERSION: 3.12
   SUPPORTED_PLATFORMS: 'linux/amd64,linux/arm64'
-  EASY_INFRA_VERSION: '2024.04.01'
+  EASY_INFRA_VERSION: '2025.01.04'
   VERSION:
     sh: cat '{{.ROOT_DIR}}/VERSION'
   LOCAL_PLATFORM:
