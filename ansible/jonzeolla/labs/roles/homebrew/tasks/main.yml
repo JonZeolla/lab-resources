@@ -2,8 +2,8 @@
 - name: Ensure supported OS
   ansible.builtin.assert:
     that:
-      - ansible_os_family in ['RedHat']
-    fail_msg: "This playbook only supports RedHat based systems."
+      - ansible_os_family in ['RedHat', 'Debian']
+    fail_msg: "This playbook only supports RedHat or Debian based systems."
   run_once: true
 
 - name: Install prereqs (apt)
@@ -66,14 +66,6 @@
         src: /home/linuxbrew/.linuxbrew/bin/brew
         dest: "{{ home_dir }}/bin/brew"
         state: link
-    - name: Install homebrew runtime dependencies
-      become: true
-      when: >
-        ansible_os_family == 'RedHat' and
-        ansible_python_version is ansible.builtin.version('2.7', '<=')
-      ansible.builtin.yum:
-        name: '@Development Tools'
-        state: latest
     - name: Install homebrew runtime dependencies
       become: true
       when: >
