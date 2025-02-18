@@ -1,0 +1,21 @@
+[project]
+name = "lab-resources"
+version = "0.1.0"
+description = "Jon Zeolla's lab resources"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = []
+
+[tool.uv.pip]
+universal = true
+generate-hashes = true
+require-hashes = true
+
+[tool.uv]
+managed = true
+dev-dependencies = [
+  "ansible-lint",
+  "bumpversion",
+  "pre-commit",
+]
+package = false

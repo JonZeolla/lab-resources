@@ -18,7 +18,7 @@ task update
 
 ## Creating a release
 
-In order to cut a release, you must additionally have `pipenv` and `python3` installed.
+In order to cut a release, you must additionally have `uv` and `python3` installed.
 
 ```bash
 # Create the release

@@ -1,6 +1,44 @@
 ---
 repos:
-  - repo: https://github.com/seisollc/goat
-    rev: aaca59f98995651447f16527e154ffe92755c568  # frozen: v2024.06.02
-    hooks:
-      - id: seiso-lint
+ - repo: https://github.com/astral-sh/ruff-pre-commit
+   rev: d7f0995508bdaeb0a1f4a838500d6a0a1fc6ec7b  # frozen: v0.9.5
+   hooks:
+     - id: ruff
+       types_or: [ python, pyi, jupyter ]
+       args: [ --fix ]
+     - id: ruff-format
+       types_or: [ python, pyi, jupyter ]
+ - repo: https://github.com/pre-commit/pre-commit-hooks
+   rev: cef0300fd0fc4d2a87a85fa2093c6b283ea36f4b  # frozen: v5.0.0
+   hooks:
+    - id: check-case-conflict
+    - id: check-executables-have-shebangs
+    - id: check-json
+    - id: check-shebang-scripts-are-executable
+    - id: check-symlinks
+    - id: check-yaml
+    - id: detect-aws-credentials
+      args: ['--allow-missing-credentials']
+    - id: detect-private-key
+    - id: end-of-file-fixer
+    - id: trailing-whitespace
+ - repo: https://github.com/lycheeverse/lychee
+   rev: 3fb94e064cf618352bdcca10742bd21ebdb05a86  # frozen: nightly
+   hooks:
+     - id: lychee-docker
+       types: [markdown]
+ - repo: https://github.com/rhysd/actionlint
+   rev: 03d0035246f3e81f36aed592ffb4bebf33a03106  # frozen: v1.7.7
+   hooks:
+     - id: actionlint-docker
+ - repo: https://github.com/koalaman/shellcheck-precommit
+   rev: 2491238703a5d3415bb2b7ff11388bf775372f29  # frozen: v0.10.0
+   hooks:
+     - id: shellcheck
+       args: [ -x, --source-path=SCRIPTDIR ]
+ - repo: https://github.com/trufflesecurity/trufflehog
+   rev: f19d6e5d2bef8a8ceca2b7d77ec447fc304f8078  # frozen: v3.88.5
+   hooks:
+     - id: trufflehog
+       # Check the past 2 commits; it's useful to make this go further back than main when running this where main and HEAD are equal
+       entry: trufflehog git file://. --since-commit main~1 --no-verification --fail
