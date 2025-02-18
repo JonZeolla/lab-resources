@@ -4,7 +4,7 @@ requires-python = ">=3.12"
 
 [[package]]
 name = "ansible-compat"
-version = "25.1.2"
+version = "25.1.3"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "ansible-core" },
@@ -13,9 +13,9 @@ dependencies = [
     { name = "pyyaml" },
     { name = "subprocess-tee" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/c6/6e/46a414902bc519b08d1c504e034040e2f39c240fe74a1c69b72ba33991ee/ansible_compat-25.1.2.tar.gz", hash = "sha256:0dc51fc1cb35a1dd060ec977290a1290f434bb3e81c864b6375762767c035b25", size = 87902 }
+sdist = { url = "https://files.pythonhosted.org/packages/92/a4/257daea936d3826155d4f401ca2bb0f6dada509a54cb763cf7b6bd815cd9/ansible_compat-25.1.3.tar.gz", hash = "sha256:bf1601d2f65a735ce1f1aa055336bab4451dadb28e0443e78a7b0155ecc153f8", size = 87901 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/43/92/9a213df54bbcc6f9077d8c28f48dabfec648d22c8000839eee865a396e12/ansible_compat-25.1.2-py3-none-any.whl", hash = "sha256:02436ba6011d283aa3346b703f4c6379d4609443d333654a187cec7895787124", size = 25790 },
+    { url = "https://files.pythonhosted.org/packages/d9/4f/55b67dd12f5816bf19ca160c7718bd46de1820f4fe1536d7818fb3e13fa8/ansible_compat-25.1.3-py3-none-any.whl", hash = "sha256:d2b54060e11ae98bdf6c0969fa50608d2ebd7fd58ed771c3dba4023d42f3d2c8", size = 25776 },
 ]
 
 [[package]]
