@@ -30,11 +30,11 @@ git push --atomic origin $(git branch --show-current) --follow-tags
 
 ## Troubleshooting
 
-If you want to troubleshoot issues using this as a part of a workshop, create a Cloud9 environment, clone the repository that uses this project (i.e.
-`policy-as-code`), run `task init` or `git submodule update --init --recursive` from inside that repository folder, and then run the following:
+If you want to troubleshoot issues using this as a part of a workshop, clone the repository that uses this project (i.e. `policy-as-code`), run `task init` or
+`git submodule update --init --recursive` from inside that repository folder, and then run the following:
 
 ```bash
 repository=policy-as-code
-role=cloud9
+role=gitlab
 docker run -v ~/environment/${repository}/lab-resources/ansible/jonzeolla/labs/roles/${role}/tasks/main.yml:/root/.ansible/collections/ansible_collections/jonzeolla/labs/roles/${role}/tasks/main.yml --network host -v /:/host jonzeolla/labs:${repository}
 ```
