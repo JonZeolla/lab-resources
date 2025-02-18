@@ -26,6 +26,13 @@ jobs:
         uses: arduino/setup-task@v2
       - name: Initialize the repo
         run: task -v init
+      - name: Cache the pre-commit cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pre-commit
+          key: ${{ runner.os }}-pre-commit-${{ hashFiles('.pre-commit-config.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pre-commit-
       - name: Lint
         run: task -v lint
   test:
