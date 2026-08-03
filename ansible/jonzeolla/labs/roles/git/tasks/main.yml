@@ -1,0 +1,16 @@
+---
+- name: Install git (Linux)
+  become: true
+  when: ansible_os_family != 'Windows'
+  ansible.builtin.package:
+    name: git
+    state: present
+
+- name: Install git machine-wide (Windows)
+  when: ansible_os_family == 'Windows'
+  ansible.builtin.raw: powershell -ExecutionPolicy Bypass -Command "winget install --id Git.Git --source winget --scope machine --silent --accept-package-agreements --accept-source-agreements"
+  register: git_install
+  changed_when: "'already installed' not in (git_install.stdout | default(''))"
+  failed_when:
+    - git_install.rc != 0
+    - "'already installed' not in (git_install.stdout | default(''))"

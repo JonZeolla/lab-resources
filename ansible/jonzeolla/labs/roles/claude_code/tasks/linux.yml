@@ -1,0 +1,40 @@
+---
+- name: Ensure supported OS
+  ansible.builtin.assert:
+    that:
+      - ansible_os_family == 'RedHat'
+    fail_msg: "The claude_code linux tasks currently support RedHat family systems."
+  run_once: true
+
+- name: Enable the Node.js module stream
+  become: true
+  ansible.builtin.command: "dnf module enable -y nodejs:{{ claude_code_node_version }}"
+  args:
+    creates: "/etc/dnf/modules.d/nodejs.module"
+
+- name: Install Node.js and npm
+  become: true
+  ansible.builtin.dnf:
+    name:
+      - nodejs
+      - npm
+    state: present
+
+- name: Install Claude Code machine-wide
+  become: true
+  ansible.builtin.command: "npm install -g @anthropic-ai/claude-code@{{ claude_code_version }}"
+  args:
+    creates: /usr/local/lib/node_modules/@anthropic-ai/claude-code
+
+- name: Disable the auto-updater system-wide
+  become: true
+  ansible.builtin.copy:
+    dest: /etc/profile.d/claude-code.sh
+    mode: "0644"
+    content: |
+      # Golden-image invariant: the image re-bake is the update path.
+      export DISABLE_AUTOUPDATER=1
+
+- name: Test Claude Code
+  ansible.builtin.command: claude --version
+  changed_when: false
