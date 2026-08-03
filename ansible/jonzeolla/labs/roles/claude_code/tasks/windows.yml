@@ -8,7 +8,10 @@
     - "'already installed' not in (node_install.stdout | default(''))"
 
 - name: Install Claude Code machine-wide
-  ansible.builtin.raw: powershell -ExecutionPolicy Bypass -Command "$env:Path = [Environment]::GetEnvironmentVariable('Path','Machine'); npm install -g '@anthropic-ai/claude-code@{{ claude_code_version }}'"
+  # npm -g defaults to the per-user %APPDATA%\npm prefix on Windows, which a
+  # different streaming user never sees; pin the prefix to the machine-wide
+  # nodejs directory (already on the machine PATH).
+  ansible.builtin.raw: powershell -ExecutionPolicy Bypass -Command "$env:Path = [Environment]::GetEnvironmentVariable('Path','Machine'); npm config set prefix 'C:\Program Files\nodejs'; npm install -g '@anthropic-ai/claude-code@{{ claude_code_version }}'"
 
 - name: Disable the auto-updater system-wide
   ansible.builtin.raw: powershell -ExecutionPolicy Bypass -Command "[Environment]::SetEnvironmentVariable('DISABLE_AUTOUPDATER', '1', 'Machine')"
