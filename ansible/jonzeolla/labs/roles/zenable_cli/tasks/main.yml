@@ -1,3 +1,6 @@
 ---
 - name: Include OS-specific tasks
-  ansible.builtin.include_tasks: "{{ 'windows.yml' if ansible_os_family == 'Windows' else 'linux.yml' }}"
+  ansible.builtin.include_tasks:
+    # Explicit file: — the free-form arg parser splits on the expression's
+    # spaces and rejects them as options.
+    file: "{{ 'windows.yml' if ansible_os_family == 'Windows' else 'linux.yml' }}"
