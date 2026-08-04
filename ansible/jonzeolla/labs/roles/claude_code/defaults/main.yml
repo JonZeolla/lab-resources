@@ -4,3 +4,4 @@
 # images (the native installer is per-user and self-updating).
 claude_code_version: "2.1.212"
 claude_code_node_version: "22"
+claude_code_node_full_version: "22.23.1"

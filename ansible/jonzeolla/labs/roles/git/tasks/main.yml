@@ -6,11 +6,20 @@
     name: git
     state: present
 
+# Direct pinned download + silent install: winget's per-user source machinery
+# fails in non-interactive sessions (0x8a15000f over SSH).
 - name: Install git machine-wide (Windows)
   when: ansible_os_family == 'Windows'
-  ansible.builtin.raw: powershell -ExecutionPolicy Bypass -Command "winget install --id Git.Git --source winget --scope machine --silent --accept-package-agreements --accept-source-agreements"
-  register: git_install
-  changed_when: "'already installed' not in (git_install.stdout | default(''))"
-  failed_when:
-    - git_install.rc != 0
-    - "'already installed' not in (git_install.stdout | default(''))"
+  ansible.builtin.raw: >-
+    powershell -ExecutionPolicy Bypass -Command "
+    if (Get-Command git -ErrorAction SilentlyContinue) { exit 0 };
+    $v = '{{ git_windows_version }}';
+    $url = \"https://github.com/git-for-windows/git/releases/download/v$v.windows.1/Git-$v-64-bit.exe\";
+    Invoke-WebRequest -Uri $url -OutFile $env:TEMP\git-installer.exe;
+    Start-Process -Wait -FilePath $env:TEMP\git-installer.exe -ArgumentList '/VERYSILENT','/NORESTART','/SP-';
+    "
+
+- name: Test git (Windows)
+  when: ansible_os_family == 'Windows'
+  ansible.builtin.raw: powershell -ExecutionPolicy Bypass -Command "$env:Path = [Environment]::GetEnvironmentVariable('Path','Machine'); git --version"
+  changed_when: false
