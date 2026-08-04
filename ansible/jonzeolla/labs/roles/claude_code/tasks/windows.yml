@@ -1,24 +1,31 @@
 ---
 - name: Install Node.js machine-wide
-  # Direct pinned MSI: winget's per-user source machinery fails in
-  # non-interactive sessions (0x8a15000f over SSH).
-  ansible.builtin.raw: >-
-    powershell -ExecutionPolicy Bypass -Command "
-    if (Test-Path 'C:\\Program Files\\nodejs\\node.exe') { exit 0 };
-    $v = '{{ claude_code_node_full_version }}';
-    Invoke-WebRequest -Uri \"https://nodejs.org/dist/v$v/node-v$v-x64.msi\" -OutFile $env:TEMP\\node.msi;
-    Start-Process -Wait msiexec -ArgumentList '/i',\"$env:TEMP\\node.msi\",'/qn','/norestart';
-    "
+  # Direct pinned MSI — winget's per-user source machinery fails in
+  # non-interactive sessions. Single-quoted PowerShell only; the SSH
+  # DefaultShell is PowerShell, so no wrapper and no quote nesting.
+  ansible.builtin.raw: |
+    if (Test-Path ('C:\Program Files\nodejs\node.exe')) { exit 0 }
+    $v = '{{ claude_code_node_full_version }}'
+    $url = 'https://nodejs.org/dist/v' + $v + '/node-v' + $v + '-x64.msi'
+    $dest = $env:TEMP + '\node.msi'
+    Invoke-WebRequest -Uri $url -OutFile $dest
+    Start-Process -Wait msiexec -ArgumentList '/i', $dest, '/qn', '/norestart'
 
 - name: Install Claude Code machine-wide
   # npm -g defaults to the per-user %APPDATA%\npm prefix on Windows, which a
   # different streaming user never sees; pin the prefix to the machine-wide
   # nodejs directory (already on the machine PATH).
-  ansible.builtin.raw: powershell -ExecutionPolicy Bypass -Command "$env:Path = [Environment]::GetEnvironmentVariable('Path','Machine'); npm config set prefix 'C:\Program Files\nodejs'; npm install -g '@anthropic-ai/claude-code@{{ claude_code_version }}'"
+  ansible.builtin.raw: |
+    $env:Path = [Environment]::GetEnvironmentVariable('Path', 'Machine')
+    npm config set prefix 'C:\Program Files\nodejs'
+    npm install -g '@anthropic-ai/claude-code@{{ claude_code_version }}'
 
 - name: Disable the auto-updater system-wide
-  ansible.builtin.raw: powershell -ExecutionPolicy Bypass -Command "[Environment]::SetEnvironmentVariable('DISABLE_AUTOUPDATER', '1', 'Machine')"
+  ansible.builtin.raw: |
+    [Environment]::SetEnvironmentVariable('DISABLE_AUTOUPDATER', '1', 'Machine')
 
 - name: Test Claude Code
-  ansible.builtin.raw: powershell -ExecutionPolicy Bypass -Command "$env:Path = [Environment]::GetEnvironmentVariable('Path','Machine'); claude --version"
+  ansible.builtin.raw: |
+    $env:Path = [Environment]::GetEnvironmentVariable('Path', 'Machine')
+    claude --version
   changed_when: false

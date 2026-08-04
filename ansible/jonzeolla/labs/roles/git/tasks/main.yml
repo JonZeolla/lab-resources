@@ -7,19 +7,22 @@
     state: present
 
 # Direct pinned download + silent install: winget's per-user source machinery
-# fails in non-interactive sessions (0x8a15000f over SSH).
+# fails in non-interactive sessions (0x8a15000f over SSH). Pure PowerShell
+# with single-quoted strings only — the golden's SSH DefaultShell is
+# PowerShell, and layered quote-escaping is what breaks here.
 - name: Install git machine-wide (Windows)
   when: ansible_os_family == 'Windows'
-  ansible.builtin.raw: >-
-    powershell -ExecutionPolicy Bypass -Command "
-    if (Get-Command git -ErrorAction SilentlyContinue) { exit 0 };
-    $v = '{{ git_windows_version }}';
-    $url = \"https://github.com/git-for-windows/git/releases/download/v$v.windows.1/Git-$v-64-bit.exe\";
-    Invoke-WebRequest -Uri $url -OutFile $env:TEMP\git-installer.exe;
-    Start-Process -Wait -FilePath $env:TEMP\git-installer.exe -ArgumentList '/VERYSILENT','/NORESTART','/SP-';
-    "
+  ansible.builtin.raw: |
+    if (Get-Command git -ErrorAction SilentlyContinue) { exit 0 }
+    $v = '{{ git_windows_version }}'
+    $url = 'https://github.com/git-for-windows/git/releases/download/v' + $v + '.windows.1/Git-' + $v + '-64-bit.exe'
+    $dest = $env:TEMP + '\git-installer.exe'
+    Invoke-WebRequest -Uri $url -OutFile $dest
+    Start-Process -Wait -FilePath $dest -ArgumentList '/VERYSILENT','/NORESTART','/SP-'
 
 - name: Test git (Windows)
   when: ansible_os_family == 'Windows'
-  ansible.builtin.raw: powershell -ExecutionPolicy Bypass -Command "$env:Path = [Environment]::GetEnvironmentVariable('Path','Machine'); git --version"
+  ansible.builtin.raw: |
+    $env:Path = [Environment]::GetEnvironmentVariable('Path', 'Machine')
+    git --version
   changed_when: false
