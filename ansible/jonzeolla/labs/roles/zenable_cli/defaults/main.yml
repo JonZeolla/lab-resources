@@ -1,0 +1,4 @@
+---
+# Install machine-wide so streamed/lab sessions running as a DIFFERENT user
+# than the one converging the image still find the binary on PATH.
+zenable_cli_machine_wide: true

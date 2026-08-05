@@ -1,0 +1,23 @@
+---
+- name: Ensure supported OS
+  ansible.builtin.assert:
+    that:
+      - ansible_os_family == 'RedHat'
+    fail_msg: "The chromium role only supports RedHat family systems (Windows images ship Edge)."
+  run_once: true
+
+- name: Install EPEL
+  become: true
+  ansible.builtin.dnf:
+    name: epel-release
+    state: present
+
+- name: Install Chromium
+  become: true
+  ansible.builtin.dnf:
+    name: chromium
+    state: present
+
+- name: Test Chromium
+  ansible.builtin.command: chromium-browser --version
+  changed_when: false
