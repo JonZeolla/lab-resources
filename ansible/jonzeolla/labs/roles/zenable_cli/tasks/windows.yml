@@ -1,0 +1,21 @@
+---
+# Pure single-quoted PowerShell — the SSH DefaultShell is PowerShell; layered
+# quote-escaping through a `powershell -Command "..."` wrapper is what breaks.
+- name: Run the Zenable CLI installer
+  ansible.builtin.raw: |
+    Invoke-Expression (Invoke-RestMethod -Uri 'https://cli.zenable.app/install.ps1')
+
+- name: Install machine-wide
+  when: zenable_cli_machine_wide
+  ansible.builtin.raw: |
+    New-Item -ItemType Directory -Force -Path 'C:\Program Files\Zenable' | Out-Null
+    Copy-Item ($env:USERPROFILE + '\.zenable\bin\zenable.exe') 'C:\Program Files\Zenable\zenable.exe' -Force
+    $machinePath = [Environment]::GetEnvironmentVariable('Path', 'Machine')
+    if ($machinePath -notlike '*C:\Program Files\Zenable*') {
+      [Environment]::SetEnvironmentVariable('Path', $machinePath + ';C:\Program Files\Zenable', 'Machine')
+    }
+
+- name: Test the Zenable CLI
+  ansible.builtin.raw: |
+    & 'C:\Program Files\Zenable\zenable.exe' version
+  changed_when: false
