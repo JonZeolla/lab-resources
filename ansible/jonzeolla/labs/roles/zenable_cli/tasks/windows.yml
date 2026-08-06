@@ -1,8 +1,13 @@
 ---
 # Pure single-quoted PowerShell — the SSH DefaultShell is PowerShell; layered
 # quote-escaping through a `powershell -Command "..."` wrapper is what breaks.
+# The installer's auto-detection does not hold here: it gates its prompt on
+# [Environment]::UserInteractive, which stays true for an SSH-launched
+# PowerShell, so it asks a question nobody can answer. `raw` has no environment:
+# keyword, and `iex (irm ...)` cannot take -y, so the env var is set inline.
 - name: Run the Zenable CLI installer
   ansible.builtin.raw: |
+    $env:ZENABLE_NONINTERACTIVE = '1'
     Invoke-Expression (Invoke-RestMethod -Uri 'https://cli.zenable.app/install.ps1')
 
 - name: Install machine-wide
