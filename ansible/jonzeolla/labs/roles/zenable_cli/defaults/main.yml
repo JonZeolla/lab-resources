@@ -7,3 +7,7 @@ zenable_cli_machine_wide: true
 # image: an image is supposed to be reproducible, and an unpinned installer
 # makes the same source build differently on different days.
 zenable_cli_version: ""
+
+# Generous: covers a download, an Authenticode check and the integrations
+# install on a cold Windows host. It is a backstop, not a schedule.
+zenable_cli_install_timeout: 900

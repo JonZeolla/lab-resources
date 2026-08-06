@@ -5,11 +5,25 @@
 # [Environment]::UserInteractive, which stays true for an SSH-launched
 # PowerShell, so it asks a question nobody can answer. `raw` has no environment:
 # keyword, and `iex (irm ...)` cannot take -y, so the env var is set inline.
+# Run it in a job, not inline. An SSH session stays open until every holder
+# of its stdio exits, so a background process the installer leaves behind
+# keeps the channel open and `raw` waits on it forever — the install itself
+# having long since finished. A job owns its own handles, so the channel
+# closes. The bound turns any repeat into a failure that names itself rather
+# than a stall that consumes the whole build.
 - name: Run the Zenable CLI installer
   ansible.builtin.raw: |
-    $env:ZENABLE_NONINTERACTIVE = '1'
-    {% if zenable_cli_version %}$env:ZENABLE_VERSION = '{{ zenable_cli_version }}'
-    {% endif %}Invoke-Expression (Invoke-RestMethod -Uri 'https://cli.zenable.app/install.ps1')
+    $job = Start-Job -ScriptBlock {
+      $env:ZENABLE_NONINTERACTIVE = '1'
+      {% if zenable_cli_version %}$env:ZENABLE_VERSION = '{{ zenable_cli_version }}'
+      {% endif %}Invoke-Expression (Invoke-RestMethod -Uri 'https://cli.zenable.app/install.ps1') *>&1
+    }
+    $finished = Wait-Job $job -Timeout {{ zenable_cli_install_timeout }}
+    Receive-Job $job -Keep
+    if (-not $finished) {
+      Stop-Job $job
+      throw 'Zenable CLI installer exceeded {{ zenable_cli_install_timeout }}s'
+    }
 
 - name: Install machine-wide
   when: zenable_cli_machine_wide
