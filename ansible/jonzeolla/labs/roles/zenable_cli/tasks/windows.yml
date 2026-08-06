@@ -8,7 +8,8 @@
 - name: Run the Zenable CLI installer
   ansible.builtin.raw: |
     $env:ZENABLE_NONINTERACTIVE = '1'
-    Invoke-Expression (Invoke-RestMethod -Uri 'https://cli.zenable.app/install.ps1')
+    {% if zenable_cli_version %}$env:ZENABLE_VERSION = '{{ zenable_cli_version }}'
+    {% endif %}Invoke-Expression (Invoke-RestMethod -Uri 'https://cli.zenable.app/install.ps1')
 
 - name: Install machine-wide
   when: zenable_cli_machine_wide

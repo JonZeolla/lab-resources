@@ -1,7 +1,7 @@
 ---
 - name: Run the Zenable CLI installer
   ansible.builtin.shell:
-    cmd: set -o pipefail && curl -fsSL https://cli.zenable.app/install.sh | ZENABLE_NONINTERACTIVE=1 bash -s -- --yes
+    cmd: set -o pipefail && curl -fsSL https://cli.zenable.app/install.sh | ZENABLE_NONINTERACTIVE=1 {% if zenable_cli_version %}ZENABLE_VERSION={{ zenable_cli_version }} {% endif %}bash -s -- --yes
     creates: "{{ ansible_env.HOME }}/.zenable/bin/zenable"
 
 - name: Install machine-wide
