@@ -1,0 +1,9 @@
+---
+# Empty installs whatever get.docker.com currently calls latest. Set it for a
+# golden image: an image is supposed to be reproducible, and an unpinned
+# installer makes the same source build differently on different days.
+#
+# Note that what is installable is capped by the DISTRIBUTION's channel, not by
+# upstream. Docker's EL8 channel stops years short of its current release, so a
+# version taken from upstream tags names a package the installer cannot fetch.
+docker_version: ""
