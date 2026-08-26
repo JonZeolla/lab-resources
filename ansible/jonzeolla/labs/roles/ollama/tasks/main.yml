@@ -1,0 +1,76 @@
+---
+- name: Ensure supported OS
+  ansible.builtin.assert:
+    that:
+      - ansible_os_family in ['Debian', 'RedHat']
+    fail_msg: This role only supports Debian and RedHat based systems.
+  run_once: true
+
+# Two of these bite on a minimal image. Current releases ship .tar.zst and the
+# installer aborts rather than falling back when zstd is absent; and it checks
+# for xargs up front, which lives in findutils and is not always there.
+- name: Install prereqs
+  become: true
+  ansible.builtin.package:
+    name:
+      - ca-certificates
+      - curl
+      - findutils
+      - tar
+      - zstd
+    state: present
+
+# Fetched and executed as two tasks rather than piped into a shell: a
+# truncated download still runs however much of itself parsed, and a pipeline
+# reports the shell's exit status, never curl's.
+- name: Fetch the ollama installer
+  ansible.builtin.get_url:
+    url: https://ollama.com/install.sh
+    dest: /tmp/ollama-install.sh
+    mode: "0755"
+
+# Deliberately NOT guarded by `creates:`. That guard skips whenever ollama is
+# already present, so a version bump would silently never apply — the failure
+# being a golden image that keeps shipping the version it shipped last time.
+- name: Run the ollama installer
+  become: true
+  ansible.builtin.command:
+    cmd: /tmp/ollama-install.sh
+  environment:
+    OLLAMA_VERSION: "{{ ollama_version }}"
+  changed_when: true
+
+- name: Remove the ollama installer
+  become: true
+  ansible.builtin.file:
+    path: /tmp/ollama-install.sh
+    state: absent
+
+# Only the backends this host has no way to use. ollama probes at runtime and
+# falls back to CPU, so a missing backend costs nothing on a box that lacks the
+# hardware; keeping them costs GBs in every image built from here.
+- name: Find unusable accelerator backends
+  become: true
+  ansible.builtin.find:
+    paths: "{{ ollama_lib_dir }}"
+    file_type: directory
+    recurse: false
+    patterns: >-
+      {{ ollama_accelerator_patterns | dict2items
+         | rejectattr('key', 'in', ollama_accelerators)
+         | map(attribute='value') | list }}
+  register: ollama_unusable_backends
+
+- name: Remove unusable accelerator backends
+  become: true
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: absent
+  loop: "{{ ollama_unusable_backends.files }}"
+  loop_control:
+    label: "{{ item.path | basename }}"
+
+- name: Test ollama
+  become: true
+  ansible.builtin.command: ollama --version
+  changed_when: false
