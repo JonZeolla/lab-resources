@@ -1,0 +1,10 @@
+---
+# Empty installs whatever astral currently calls latest. Set it for a golden
+# image: an image is supposed to be reproducible, and an unpinned installer
+# makes the same source build differently on different days.
+uv_version: ""
+
+# Machine-wide, because streamed/lab sessions run as a DIFFERENT user than the
+# one converging the image — the installer's own per-user default lands in the
+# converging account's home, where no session will ever find it.
+uv_install_dir: /usr/local/bin
