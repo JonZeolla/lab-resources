@@ -1,0 +1,31 @@
+---
+# Empty installs whatever ollama currently calls latest. Set it for a golden
+# image: an image is supposed to be reproducible, and an unpinned installer
+# makes the same source build differently on different days.
+#
+# Bare version, NO leading v — the installer passes this straight through as a
+# download query parameter, and `v0.32.15` 404s where `0.32.15` resolves.
+ollama_version: ""
+
+# Which hardware accelerators this host actually has.
+#
+# The installer always unpacks every backend it ships, whatever the host looks
+# like — roughly 2 GB of CUDA and Vulkan runners against ~30 MB of CPU runtime.
+# A CPU-only box never loads a byte of it, so anything not named here is
+# removed after install. On a GPU host, name the accelerator and its backend is
+# kept: `ollama_accelerators: ['cuda']`.
+#
+# Empty (the default) means CPU-only.
+ollama_accelerators: []
+
+# Backend directory globs under ollama_lib_dir, keyed by accelerator name.
+# Anything NOT keyed here is left alone — this only ever removes backends it
+# knows the name of, so a new one ollama ships survives until it is added here.
+ollama_accelerator_patterns:
+  cuda: cuda_v*
+  rocm: rocm*
+  vulkan: vulkan
+
+# Where the installer puts the runners. It derives this from whichever of
+# /usr/local/bin, /usr/bin, /bin it finds on PATH first.
+ollama_lib_dir: /usr/local/lib/ollama
