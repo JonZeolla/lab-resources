@@ -1,0 +1,42 @@
+---
+# Windows has its own installer (install.ps1) and nothing here has been run
+# against a Windows target. Refuse rather than quietly install nothing and let
+# the failure surface later as "uv: command not found".
+- name: Refuse unsupported platforms
+  when: ansible_os_family == 'Windows'
+  ansible.builtin.fail:
+    msg: jonzeolla.labs.uv supports Linux only
+
+# Fetched and executed as two tasks rather than piped into a shell: a
+# truncated download still runs however much of itself parsed, and a pipeline
+# reports the shell's exit status, never curl's.
+- name: Fetch the uv installer
+  ansible.builtin.get_url:
+    url: "https://astral.sh/uv/{{ (uv_version ~ '/') if uv_version else '' }}install.sh"
+    dest: /tmp/uv-install.sh
+    mode: "0755"
+
+# Deliberately NOT guarded by `creates:`. That guard skips whenever uv is
+# already present, so a version bump would silently never apply — the failure
+# being a golden image that keeps shipping the version it shipped last time.
+# uv has no background updater, so what lands here is what stays.
+- name: Run the uv installer
+  become: true
+  ansible.builtin.command:
+    cmd: /tmp/uv-install.sh
+  environment:
+    UV_INSTALL_DIR: "{{ uv_install_dir }}"
+    # Otherwise the installer edits the converging user's shell rc, which no
+    # streamed session reads.
+    INSTALLER_NO_MODIFY_PATH: "1"
+  changed_when: true
+
+- name: Remove the uv installer
+  become: true
+  ansible.builtin.file:
+    path: /tmp/uv-install.sh
+    state: absent
+
+- name: Test uv
+  ansible.builtin.command: "{{ uv_install_dir }}/uv --version"
+  changed_when: false
