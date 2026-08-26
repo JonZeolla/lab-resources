@@ -65,5 +65,13 @@
     groups: docker
     append: true
 
+# As root, because the group added above is NOT in effect yet: supplementary
+# groups are fixed at login and this runs down the SSH session that was already
+# open, so an unprivileged `docker version` fails on the socket even though the
+# install succeeded. Root always reaches the socket, which is what this task is
+# here to prove — that the daemon is up. Whether a particular user can reach it
+# is a property of their next login, so assert that where the host is verified.
 - name: Test Docker
+  become: true
   ansible.builtin.command: docker version
+  changed_when: false
