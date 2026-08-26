@@ -46,17 +46,72 @@
     # Necessary due to curl/curl-minimal. skip_broken wasn't sufficient
     allowerasing: true
 
+# Docker publishes RPMs for centos and rhel, NOT for rocky or almalinux, and
+# get-docker.sh picks its repo from /etc/os-release ID with no way to override
+# it — so on Rocky it adds a repo containing zero packages and the install dies
+# with "Unable to find a match: docker-ce". Docker's own RHEL documentation
+# points these distributions at the centos repo, which is what this does.
+# Amazon Linux keeps the get-docker.sh path it already had.
+- name: Use the centos repo on RedHat distributions Docker does not publish for
+  ansible.builtin.set_fact:
+    docker_use_centos_repo: "{{ ansible_os_family == 'RedHat' and ansible_distribution != 'Amazon' }}"
+
+- name: Install Docker from the centos repo
+  when: docker_use_centos_repo
+  become: true
+  block:
+    - name: Install repo tooling
+      ansible.builtin.dnf:
+        name: dnf-plugins-core
+        state: present
+
+    - name: Add the Docker CE repository
+      ansible.builtin.get_url:
+        url: https://download.docker.com/linux/centos/docker-ce.repo
+        dest: /etc/yum.repos.d/docker-ce.repo
+        mode: "0644"
+
+    # containerd and the plugins version independently of the engine, so only
+    # the engine and its CLI carry the pin.
+    - name: Install Docker
+      vars:
+        docker_pin: "{{ ('-' ~ docker_version) if docker_version else '' }}"
+      ansible.builtin.dnf:
+        name:
+          - "docker-ce{{ docker_pin }}"
+          - "docker-ce-cli{{ docker_pin }}"
+          - containerd.io
+          - docker-buildx-plugin
+          - docker-compose-plugin
+        state: present
+        allowerasing: true
+
+    - name: Start Docker
+      ansible.builtin.systemd_service:
+        name: docker
+        enabled: true
+        state: started
+
 - name: Download get-docker.sh
+  when: not docker_use_centos_repo
   ansible.builtin.get_url:
     url: https://get.docker.com
     dest: /tmp/get-docker.sh
     mode: "0755"
 
+# The `creates:` guard is kept ONLY when unpinned, where any docker will do and
+# re-running would cost the installer's 20-second already-installed warning for
+# nothing. With a pin the guard has to go: it skips whenever docker exists at
+# all, so a version bump would silently never apply and the host would keep
+# whatever it already had.
 - name: Run get-docker.sh
+  when: not docker_use_centos_repo
   become: true
   ansible.builtin.command: "bash /tmp/get-docker.sh"
   args:
-    creates: /usr/bin/docker
+    creates: "{{ '/usr/bin/docker' if not docker_version else omit }}"
+  environment:
+    VERSION: "{{ docker_version }}"
 
 - name: Add the current user to the docker group
   become: true
