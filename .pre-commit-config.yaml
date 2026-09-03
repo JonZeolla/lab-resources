@@ -1,7 +1,7 @@
 ---
 repos:
  - repo: https://github.com/astral-sh/ruff-pre-commit
-   rev: e602328bc581dae429dff4cca17708f5154e487e
+   rev: 1f1e8bf348ff38fc88619a38d3ca4d9c56abea49  # frozen: v0.16.5
    hooks:
      - id: ruff
        types_or: [ python, pyi, jupyter ]
@@ -23,7 +23,7 @@ repos:
     - id: end-of-file-fixer
     - id: trailing-whitespace
  - repo: https://github.com/lycheeverse/lychee
-   rev: 5bc87d9af38c7839d16948b763bbddaefb0ec7de  # frozen: nightly
+   rev: 251a92cc9b9263f29509754b0c9f9dfb714c1e1b  # frozen: nightly
    hooks:
      - id: lychee-docker
        types: [markdown]
@@ -37,7 +37,7 @@ repos:
      - id: shellcheck
        args: [ -x, --source-path=SCRIPTDIR ]
  - repo: https://github.com/trufflesecurity/trufflehog
-   rev: 3ab759fef4bb5935d4fe9ac68b503d05346b8364
+   rev: ea33cd04a6b7a910430b5ee9b1559576b332c14d
    hooks:
      - id: trufflehog
        # Check the past 2 commits; it's useful to make this go further back than main when running this where main and HEAD are equal
