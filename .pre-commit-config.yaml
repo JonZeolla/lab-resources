@@ -1,7 +1,7 @@
 ---
 repos:
  - repo: https://github.com/astral-sh/ruff-pre-commit
-   rev: 321478e58f4938179c6b86e4ddfa923d1547a49b  # frozen: v0.16.6
+   rev: e8f7d69b957a30acb2c875078d5fd012de24b64c  # frozen: v0.16.7
    hooks:
      - id: ruff
        types_or: [ python, pyi, jupyter ]
@@ -37,7 +37,7 @@ repos:
      - id: shellcheck
        args: [ -x, --source-path=SCRIPTDIR ]
  - repo: https://github.com/trufflesecurity/trufflehog
-   rev: 2bffafb28044c57e14be4b02ef85c68a59dd5fab
+   rev: 4b7d1d3a6827691637eff750b6482042e06462d0
    hooks:
      - id: trufflehog
        # Check the past 2 commits; it's useful to make this go further back than main when running this where main and HEAD are equal
