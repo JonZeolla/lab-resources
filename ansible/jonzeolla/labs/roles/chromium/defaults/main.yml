@@ -1,0 +1,6 @@
+---
+# Users who get a Chromium launcher on their desktop. A streamed desktop's
+# application menu is not guaranteed to list every .desktop entry the package
+# installed, so a launcher in the user's Desktop folder is the one place the
+# browser is always one click away. Empty means menu entry only.
+chromium_launcher_users: []

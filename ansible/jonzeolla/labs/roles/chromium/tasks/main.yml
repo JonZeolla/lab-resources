@@ -12,12 +12,45 @@
     name: epel-release
     state: present
 
+# desktop-file-utils owns update-desktop-database, which is what turns the
+# package's .desktop entry into something the menu cache actually shows.
 - name: Install Chromium
   become: true
   ansible.builtin.dnf:
-    name: chromium
+    name:
+      - chromium
+      - desktop-file-utils
     state: present
 
 - name: Test Chromium
   ansible.builtin.command: chromium-browser --version
   changed_when: false
+
+- name: Register the menu entry with the desktop database
+  become: true
+  ansible.builtin.command: update-desktop-database /usr/share/applications
+  changed_when: false
+
+# Copied rather than symlinked: a desktop launcher has to be a regular file
+# the user owns and can mark executable, or the desktop shows it as untrusted
+# and refuses to run it.
+- name: Create the desktop folder for each launcher user
+  become: true
+  ansible.builtin.file:
+    path: "/home/{{ item }}/Desktop"
+    state: directory
+    owner: "{{ item }}"
+    group: "{{ item }}"
+    mode: "0755"
+  loop: "{{ chromium_launcher_users }}"
+
+- name: Place a Chromium launcher on each user's desktop
+  become: true
+  ansible.builtin.copy:
+    src: /usr/share/applications/chromium-browser.desktop
+    dest: "/home/{{ item }}/Desktop/chromium-browser.desktop"
+    remote_src: true
+    owner: "{{ item }}"
+    group: "{{ item }}"
+    mode: "0755"
+  loop: "{{ chromium_launcher_users }}"
