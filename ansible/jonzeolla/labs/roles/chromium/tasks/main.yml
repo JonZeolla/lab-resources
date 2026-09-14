@@ -31,6 +31,22 @@
   ansible.builtin.command: update-desktop-database /usr/share/applications
   changed_when: false
 
+- name: Seed the launcher into /etc/skel for accounts created later
+  become: true
+  when: chromium_launcher_in_skel
+  block:
+    - name: Create the skel desktop folder
+      ansible.builtin.file:
+        path: /etc/skel/Desktop
+        state: directory
+        mode: "0755"
+    - name: Place the Chromium launcher in skel
+      ansible.builtin.copy:
+        src: /usr/share/applications/chromium-browser.desktop
+        dest: /etc/skel/Desktop/chromium-browser.desktop
+        remote_src: true
+        mode: "0755"
+
 # Copied rather than symlinked: a desktop launcher has to be a regular file
 # the user owns and can mark executable, or the desktop shows it as untrusted
 # and refuses to run it.
