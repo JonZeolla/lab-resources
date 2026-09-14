@@ -1,0 +1,13 @@
+---
+# Users who get a Chromium launcher on their desktop. A streamed desktop's
+# application menu is not guaranteed to list every .desktop entry the package
+# installed, so a launcher in the user's Desktop folder is the one place the
+# browser is always one click away. Each user must already exist. Empty means
+# menu entry only.
+chromium_launcher_users: []
+
+# Also seed /etc/skel/Desktop, so an account the platform creates AFTER the
+# image is taken (a streaming session's user, a lab attendee added later)
+# starts with the launcher too. Off by default: it touches every future user
+# on the host.
+chromium_launcher_in_skel: false
