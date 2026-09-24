@@ -1,0 +1,4 @@
+---
+# Exact version pin: images must not drift after snapshot, and the npm global
+# install is machine-wide, where a streaming user cannot rewrite it.
+codex_version: "0.154.0"

@@ -1,0 +1,29 @@
+---
+- name: Ensure supported OS
+  ansible.builtin.assert:
+    that:
+      - ansible_os_family == 'RedHat'
+    fail_msg: "The nodejs linux tasks currently support RedHat family systems."
+  run_once: true
+
+- name: Enable the Node.js module stream
+  become: true
+  ansible.builtin.command: "dnf module enable -y nodejs:{{ nodejs_major_version }}"
+  args:
+    creates: "/etc/dnf/modules.d/nodejs.module"
+
+- name: Install Node.js and npm
+  become: true
+  ansible.builtin.dnf:
+    name:
+      - nodejs
+      - npm
+    state: present
+
+- name: Test Node.js
+  ansible.builtin.command: node --version
+  changed_when: false
+
+- name: Test npm
+  ansible.builtin.command: npm --version
+  changed_when: false

@@ -1,0 +1,110 @@
+---
+- name: Ensure supported OS
+  ansible.builtin.assert:
+    that:
+      - ansible_os_family == 'RedHat'
+    fail_msg: "The vscode role only supports RedHat family systems."
+  run_once: true
+
+- name: Trust the Microsoft package signing key
+  become: true
+  ansible.builtin.rpm_key:
+    key: https://packages.microsoft.com/keys/microsoft.asc
+    state: present
+
+# Same file and section as Microsoft's own install instructions, so following
+# them later on this host does not configure the repository twice.
+- name: Add the Visual Studio Code repository
+  become: true
+  ansible.builtin.yum_repository:
+    name: code
+    file: vscode
+    description: Visual Studio Code
+    baseurl: https://packages.microsoft.com/yumrepos/vscode
+    gpgcheck: true
+    repo_gpgcheck: true
+    gpgkey: https://packages.microsoft.com/keys/microsoft.asc
+
+# desktop-file-utils owns update-desktop-database, which is what turns the
+# package's .desktop entry into something the menu cache actually shows.
+- name: Install Visual Studio Code
+  become: true
+  ansible.builtin.dnf:
+    name:
+      - "code-{{ vscode_version }}"
+      - desktop-file-utils
+    state: present
+
+# A system policy, unlike a settings.json default, applies to every user and
+# cannot be overridden from the settings UI. On Linux the RPM build only ever
+# notifies about an update, but that notification is itself drift nobody on a
+# rebuilt image can act on.
+- name: Create the system VS Code policy directory
+  become: true
+  ansible.builtin.file:
+    path: /etc/vscode
+    state: directory
+    mode: "0755"
+
+- name: Disable update checks system-wide
+  become: true
+  ansible.builtin.copy:
+    dest: /etc/vscode/policy.json
+    mode: "0644"
+    content: |
+      {
+        "UpdateMode": "none",
+        "ExtensionsAutoUpdate": "off"
+      }
+
+# Run as root, even --version refuses and exits 1 unless given both flags; with
+# them it still only prints the version, creating neither the directory nor
+# anything else, so the test passes whichever user converges the image.
+- name: Test Visual Studio Code
+  ansible.builtin.command: code --no-sandbox --user-data-dir /tmp/vscode-version-check --version
+  changed_when: false
+
+- name: Register the menu entry with the desktop database
+  become: true
+  ansible.builtin.command: update-desktop-database /usr/share/applications
+  changed_when: false
+
+- name: Seed the launcher into /etc/skel for accounts created later
+  become: true
+  when: vscode_launcher_in_skel
+  block:
+    - name: Create the skel desktop folder
+      ansible.builtin.file:
+        path: /etc/skel/Desktop
+        state: directory
+        mode: "0755"
+    - name: Place the VS Code launcher in skel
+      ansible.builtin.copy:
+        src: /usr/share/applications/code.desktop
+        dest: /etc/skel/Desktop/code.desktop
+        remote_src: true
+        mode: "0755"
+
+# Copied rather than symlinked: a desktop launcher has to be a regular file
+# the user owns and can mark executable, or the desktop shows it as untrusted
+# and refuses to run it.
+- name: Create the desktop folder for each launcher user
+  become: true
+  ansible.builtin.file:
+    path: "/home/{{ item }}/Desktop"
+    state: directory
+    owner: "{{ item }}"
+    group: "{{ item }}"
+    mode: "0755"
+  loop: "{{ vscode_launcher_users }}"
+
+- name: Place a VS Code launcher on each user's desktop
+  become: true
+  ansible.builtin.copy:
+    src: /usr/share/applications/code.desktop
+    dest: "/home/{{ item }}/Desktop/code.desktop"
+    remote_src: true
+    owner: "{{ item }}"
+    group: "{{ item }}"
+    mode: "0755"
+  loop: "{{ vscode_launcher_users }}"

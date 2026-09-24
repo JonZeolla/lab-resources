@@ -1,0 +1,53 @@
+---
+- name: Ensure supported OS
+  ansible.builtin.assert:
+    that:
+      - ansible_os_family == 'RedHat'
+    fail_msg: "The codex linux tasks currently support RedHat family systems."
+  run_once: true
+
+# Codex sandboxes commands with the first bwrap on PATH and only falls back to
+# the copy it bundles, warning at every startup that the system one is missing.
+- name: Install bubblewrap
+  become: true
+  ansible.builtin.dnf:
+    name: bubblewrap
+    state: present
+
+# Compared against the pin rather than guarded by `creates:`, which skips
+# whenever any version is present and so never applies a version bump.
+- name: Read the installed Codex version
+  ansible.builtin.command: npm ls -g --depth=0 --json @openai/codex
+  register: codex_installed
+  changed_when: false
+  failed_when: false
+
+- name: Install Codex machine-wide
+  become: true
+  ansible.builtin.command: "npm install -g @openai/codex@{{ codex_version }}"
+  when: >-
+    (codex_installed.stdout | from_json).get('dependencies', {})
+    .get('@openai/codex', {}).get('version') != codex_version
+  changed_when: true
+
+- name: Create the system Codex config directory
+  become: true
+  ansible.builtin.file:
+    path: /etc/codex
+    state: directory
+    mode: "0755"
+
+# requirements.toml, not the system config.toml: a requirement is enforced
+# over every user's ~/.codex/config.toml, where a config default is not.
+- name: Disable the update check system-wide
+  become: true
+  ansible.builtin.copy:
+    dest: /etc/codex/requirements.toml
+    mode: "0644"
+    content: |
+      # Golden-image invariant: the image re-bake is the update path.
+      check_for_update_on_startup = false
+
+- name: Test Codex
+  ansible.builtin.command: codex --version
+  changed_when: false
