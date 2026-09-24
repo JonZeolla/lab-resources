@@ -1,0 +1,8 @@
+---
+# Exact version pin: images must not drift after snapshot, and the npm global
+# install is machine-wide, where a streaming user cannot rewrite it.
+pi_version: "0.85.1"
+
+# The package's engines floor. npm only warns on a mismatch and installs
+# anyway, so a node older than this surfaces as a crash at first run instead.
+pi_minimum_node_version: "22.19.0"

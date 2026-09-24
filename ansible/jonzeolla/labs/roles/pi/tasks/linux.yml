@@ -1,0 +1,50 @@
+---
+- name: Ensure supported OS
+  ansible.builtin.assert:
+    that:
+      - ansible_os_family == 'RedHat'
+    fail_msg: "The pi linux tasks currently support RedHat family systems."
+  run_once: true
+
+- name: Read the Node.js version
+  ansible.builtin.command: node --version
+  register: pi_node_version
+  changed_when: false
+
+- name: Ensure Node.js satisfies the pi engines floor
+  ansible.builtin.assert:
+    that:
+      - pi_node_version.stdout | trim | regex_replace('^v', '') is version(pi_minimum_node_version, '>=')
+    fail_msg: >-
+      pi {{ pi_version }} needs Node.js >= {{ pi_minimum_node_version }}, found
+      {{ pi_node_version.stdout | trim }}; raise nodejs_major_version.
+
+# Compared against the pin rather than guarded by `creates:`, which skips
+# whenever any version is present and so never applies a version bump.
+- name: Read the installed pi version
+  ansible.builtin.command: npm ls -g --depth=0 --json @earendil-works/pi-coding-agent
+  register: pi_installed
+  changed_when: false
+  failed_when: false
+
+- name: Install pi machine-wide
+  become: true
+  ansible.builtin.command: "npm install -g @earendil-works/pi-coding-agent@{{ pi_version }}"
+  when: >-
+    (pi_installed.stdout | from_json).get('dependencies', {})
+    .get('@earendil-works/pi-coding-agent', {}).get('version') != pi_version
+  changed_when: true
+
+# pi has no self-updater, only a startup check that announces new releases.
+- name: Disable the update check system-wide
+  become: true
+  ansible.builtin.copy:
+    dest: /etc/profile.d/pi.sh
+    mode: "0644"
+    content: |
+      # Golden-image invariant: the image re-bake is the update path.
+      export PI_SKIP_VERSION_CHECK=1
+
+- name: Test pi
+  ansible.builtin.command: pi --version
+  changed_when: false
