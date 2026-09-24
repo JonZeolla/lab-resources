@@ -1,0 +1,20 @@
+---
+- name: Install Codex machine-wide
+  # Machine-wide because the nodejs dependency pinned npm's global prefix.
+  ansible.builtin.raw: |
+    $env:Path = [Environment]::GetEnvironmentVariable('Path', 'Machine')
+    npm install -g '@openai/codex@{{ codex_version }}'
+
+# requirements.toml, not the system config.toml: a requirement is enforced
+# over every user's config.toml, where a config default is not.
+- name: Disable the update check system-wide
+  ansible.builtin.raw: |
+    $dir = $env:ProgramData + '\OpenAI\Codex'
+    New-Item -ItemType Directory -Force -Path $dir | Out-Null
+    Set-Content -Path ($dir + '\requirements.toml') -Value 'check_for_update_on_startup = false'
+
+- name: Test Codex
+  ansible.builtin.raw: |
+    $env:Path = [Environment]::GetEnvironmentVariable('Path', 'Machine')
+    codex --version
+  changed_when: false

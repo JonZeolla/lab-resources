@@ -6,20 +6,6 @@
     fail_msg: "The claude_code linux tasks currently support RedHat family systems."
   run_once: true
 
-- name: Enable the Node.js module stream
-  become: true
-  ansible.builtin.command: "dnf module enable -y nodejs:{{ claude_code_node_version }}"
-  args:
-    creates: "/etc/dnf/modules.d/nodejs.module"
-
-- name: Install Node.js and npm
-  become: true
-  ansible.builtin.dnf:
-    name:
-      - nodejs
-      - npm
-    state: present
-
 - name: Install Claude Code machine-wide
   become: true
   ansible.builtin.command: "npm install -g @anthropic-ai/claude-code@{{ claude_code_version }}"
