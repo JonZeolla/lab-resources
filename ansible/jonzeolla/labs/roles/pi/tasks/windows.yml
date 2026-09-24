@@ -1,0 +1,32 @@
+---
+- name: Read the Node.js version
+  ansible.builtin.raw: |
+    $env:Path = [Environment]::GetEnvironmentVariable('Path', 'Machine')
+    node --version
+  register: pi_node_version
+  changed_when: false
+
+- name: Ensure Node.js satisfies the pi engines floor
+  ansible.builtin.assert:
+    that:
+      - pi_node_version.stdout | trim | regex_replace('^v', '') is version(pi_minimum_node_version, '>=')
+    fail_msg: >-
+      pi {{ pi_version }} needs Node.js >= {{ pi_minimum_node_version }}, found
+      {{ pi_node_version.stdout | trim }}; raise nodejs_windows_version.
+
+- name: Install pi machine-wide
+  # Machine-wide because the nodejs dependency pinned npm's global prefix.
+  ansible.builtin.raw: |
+    $env:Path = [Environment]::GetEnvironmentVariable('Path', 'Machine')
+    npm install -g '@earendil-works/pi-coding-agent@{{ pi_version }}'
+
+# pi has no self-updater, only a startup check that announces new releases.
+- name: Disable the update check system-wide
+  ansible.builtin.raw: |
+    [Environment]::SetEnvironmentVariable('PI_SKIP_VERSION_CHECK', '1', 'Machine')
+
+- name: Test pi
+  ansible.builtin.raw: |
+    $env:Path = [Environment]::GetEnvironmentVariable('Path', 'Machine')
+    pi --version
+  changed_when: false
