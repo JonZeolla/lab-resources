@@ -1,0 +1,15 @@
+---
+ebpf_bpftool_version: '7.7.0'
+ebpf_libbpf_version: '1.7.0'
+ebpf_sources_checksum: 'sha256:7d46a381f607432bdb5201a08b889924b6a4883bf09e8efca82a86a7d122cc97'
+ebpf_bpftrace_version: '0.27.0'
+ebpf_bpftrace_checksums:
+  aarch64: 'sha256:13879e0b6c6b3fa6384ad24859157b6ce352aac9d84f55eabadc68c2c6084274'
+  x86_64: 'sha256:16194f713ba1fbff2dd76b7abffad4cd61f91e5663b116a5b03c907ae3e20cd8'
+ebpf_task_version: '3.53.1'
+ebpf_task_architectures:
+  aarch64: arm64
+  x86_64: amd64
+ebpf_task_checksums:
+  aarch64: 'sha256:e3ad19101493a0112e1f22ae8ccc54bf03e533b1076a0ca1e6c782a09ad2e588'
+  x86_64: 'sha256:a54a408f6861ff921f6e87774180db31bacd8c1e7c944ca696db9fea49a82fc7'

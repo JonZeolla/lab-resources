@@ -1,0 +1,139 @@
+---
+- name: Validate platform and pinned sources
+  ansible.builtin.assert:
+    that:
+      - ansible_os_family in ['Debian', 'RedHat']
+      - ansible_architecture in ebpf_bpftrace_checksums
+      - ebpf_bpftool_version is match('^[0-9]+\.[0-9]+\.[0-9]+$')
+      - ebpf_bpftrace_version is match('^[0-9]+\.[0-9]+\.[0-9]+$')
+      - ebpf_sources_checksum is match('^sha256:[0-9a-f]{64}$')
+
+- name: Install build dependencies on RedHat
+  become: true
+  when: ansible_os_family == 'RedHat'
+  ansible.builtin.dnf:
+    name: [gcc, make, pkgconf-pkg-config, elfutils-libelf-devel, openssl-devel, zlib-devel]
+    state: present
+
+- name: Install build dependencies on Debian
+  become: true
+  when: ansible_os_family == 'Debian'
+  ansible.builtin.apt:
+    name: [gcc, make, pkg-config, libelf-dev, libssl-dev, zlib1g-dev]
+    state: present
+    update_cache: true
+
+- name: Install matching libbpf and bpftool
+  become: true
+  vars:
+    ebpf_source_dir: '/usr/local/src/bpftool-libbpf-v{{ ebpf_bpftool_version }}-sources'
+  block:
+    - name: Create the source directory
+      ansible.builtin.file:
+        path: /usr/local/src
+        state: directory
+        mode: '0755'
+
+    - name: Download the bpftool source bundle with its matching libbpf
+      ansible.builtin.get_url:
+        url: 'https://github.com/libbpf/bpftool/releases/download/v{{ ebpf_bpftool_version }}/bpftool-libbpf-v{{ ebpf_bpftool_version }}-sources.tar.gz'
+        dest: '/usr/local/src/bpftool-libbpf-{{ ebpf_bpftool_version }}.tar.gz'
+        checksum: '{{ ebpf_sources_checksum }}'
+        mode: '0644'
+
+    - name: Extract sources
+      ansible.builtin.unarchive:
+        src: '/usr/local/src/bpftool-libbpf-{{ ebpf_bpftool_version }}.tar.gz'
+        dest: /usr/local/src
+        remote_src: true
+        creates: '{{ ebpf_source_dir }}'
+
+    # Keep the distribution's libbpf.so.0 for its ABI consumers. Modern CO-RE
+    # loaders need libbpf.so.1 to read the current kernel's BTF kinds.
+    - name: Build and install libbpf
+      ansible.builtin.command:
+        argv: [make, '-C', '{{ ebpf_source_dir }}/libbpf/src', 'PREFIX=/usr/local', 'LIBDIR=/usr/local/lib', install]
+        creates: '/usr/local/lib/libbpf.so.{{ ebpf_libbpf_version }}'
+
+    - name: Register the native library directory
+      ansible.builtin.copy:
+        dest: /etc/ld.so.conf.d/ebpf.conf
+        content: |
+          /usr/local/lib
+        mode: '0644'
+
+    - name: Refresh the linker cache
+      ansible.builtin.command: ldconfig
+      changed_when: false
+
+    - name: Build bpftool
+      ansible.builtin.command:
+        argv: [make, '-C', '{{ ebpf_source_dir }}/src', '-j2']
+        creates: '{{ ebpf_source_dir }}/src/bpftool'
+
+    - name: Install bpftool
+      ansible.builtin.copy:
+        src: '{{ ebpf_source_dir }}/src/bpftool'
+        dest: /usr/local/bin/bpftool
+        remote_src: true
+        mode: '0755'
+
+- name: Install bpftrace without a FUSE dependency
+  become: true
+  vars:
+    ebpf_bpftrace_dir: '/opt/bpftrace/{{ ebpf_bpftrace_version }}'
+  block:
+    - name: Create the bpftrace installation directory
+      ansible.builtin.file:
+        path: '{{ ebpf_bpftrace_dir }}'
+        state: directory
+        mode: '0755'
+
+    - name: Download the pinned bpftrace AppImage
+      ansible.builtin.get_url:
+        url: 'https://github.com/bpftrace/bpftrace/releases/download/v{{ ebpf_bpftrace_version }}/bpftrace-{{ ansible_architecture }}'
+        dest: '{{ ebpf_bpftrace_dir }}/bpftrace.AppImage'
+        checksum: '{{ ebpf_bpftrace_checksums[ansible_architecture] }}'
+        mode: '0755'
+
+    # Streaming images need no FUSE mount or per-invocation extraction.
+    - name: Extract the AppImage
+      ansible.builtin.command:
+        argv: ['{{ ebpf_bpftrace_dir }}/bpftrace.AppImage', --appimage-extract]
+        chdir: '{{ ebpf_bpftrace_dir }}'
+        creates: '{{ ebpf_bpftrace_dir }}/squashfs-root/AppRun'
+
+    - name: Expose bpftrace on PATH
+      ansible.builtin.file:
+        src: '{{ ebpf_bpftrace_dir }}/squashfs-root/AppRun'
+        dest: /usr/local/bin/bpftrace
+        state: link
+
+- name: Verify bpftool
+  ansible.builtin.command: /usr/local/bin/bpftool version
+  changed_when: false
+
+- name: Verify bpftrace
+  ansible.builtin.command: /usr/local/bin/bpftrace --version
+  changed_when: false
+
+- name: Install the rig test runner
+  become: true
+  block:
+    - name: Download the pinned Task archive
+      ansible.builtin.get_url:
+        url: 'https://github.com/go-task/task/releases/download/v{{ ebpf_task_version }}/task_linux_{{ ebpf_task_architectures[ansible_architecture] }}.tar.gz'
+        dest: '/usr/local/src/task-{{ ebpf_task_version }}.tar.gz'
+        checksum: '{{ ebpf_task_checksums[ansible_architecture] }}'
+        mode: '0644'
+
+    - name: Extract the Task executable
+      ansible.builtin.unarchive:
+        src: '/usr/local/src/task-{{ ebpf_task_version }}.tar.gz'
+        dest: /usr/local/bin
+        remote_src: true
+        include: [task]
+
+    - name: Verify Task
+      ansible.builtin.command: /usr/local/bin/task --version
+      changed_when: false
