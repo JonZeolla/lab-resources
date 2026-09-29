@@ -240,6 +240,7 @@ tasks:
       - uv tool upgrade --all
       - uv lock --upgrade
       - uv run pre-commit autoupdate --bleeding-edge --freeze
+      - uv run hack/update-pins.py
 
   pipeline-git-init:
     desc: Initialize git configs in the pipeline
