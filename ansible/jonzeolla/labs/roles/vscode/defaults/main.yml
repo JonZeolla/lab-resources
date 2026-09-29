@@ -3,7 +3,7 @@
 # field differs per architecture, so the pin is the upstream version alone.
 # On EL8 only x86_64 installs: the aarch64 builds need a newer libstdc++
 # (GLIBCXX_3.4.26) than EL8 ships.
-vscode_version: "1.138.0"
+vscode_version: "1.139.1"
 
 # Users who get a VS Code launcher on their desktop. A streamed desktop's
 # application menu is not guaranteed to list every .desktop entry the package
