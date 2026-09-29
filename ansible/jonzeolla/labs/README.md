@@ -14,6 +14,7 @@ to update rather than drifting after it is taken.
 | `claude_code` | Claude Code, from npm (depends on `nodejs`) | RedHat, Windows |
 | `cloud9` | AWS Cloud9 environment setup | Linux |
 | `codex` | OpenAI Codex CLI, from npm (depends on `nodejs`) | RedHat, Windows |
+| `copilot` | GitHub Copilot CLI, from npm (depends on `nodejs`) | RedHat, Windows |
 | `docker` | Docker Engine | Debian, RedHat |
 | `docker_compose` | Docker Compose | Debian, RedHat |
 | `docker_registry` | A local Docker registry | Debian, RedHat |
