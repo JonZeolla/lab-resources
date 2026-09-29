@@ -69,6 +69,23 @@
   ansible.builtin.command: update-desktop-database /usr/share/applications
   changed_when: false
 
+# Read from the package rather than pinned: 1.139 renamed code.desktop to
+# com.microsoft.VSCode.desktop, and a version bump is otherwise the only
+# thing that notices. The URL handler is the package's other .desktop entry.
+- name: Find the VS Code launcher the package installed
+  ansible.builtin.shell:
+    cmd: >-
+      set -o pipefail;
+      rpm -ql code | grep -E '^/usr/share/applications/[^/]+[.]desktop$' | grep -viE 'url.?handler'
+    executable: /bin/bash
+  register: vscode_launcher_query
+  changed_when: false
+  failed_when: vscode_launcher_query.stdout_lines | length != 1
+
+- name: Record the launcher name for callers (dock favorites, checks)
+  ansible.builtin.set_fact:
+    vscode_desktop_file: "{{ vscode_launcher_query.stdout_lines[0] | basename }}"
+
 - name: Seed the launcher into /etc/skel for accounts created later
   become: true
   when: vscode_launcher_in_skel
@@ -80,8 +97,8 @@
         mode: "0755"
     - name: Place the VS Code launcher in skel
       ansible.builtin.copy:
-        src: /usr/share/applications/code.desktop
-        dest: /etc/skel/Desktop/code.desktop
+        src: "/usr/share/applications/{{ vscode_desktop_file }}"
+        dest: "/etc/skel/Desktop/{{ vscode_desktop_file }}"
         remote_src: true
         mode: "0755"
 
@@ -101,8 +118,8 @@
 - name: Place a VS Code launcher on each user's desktop
   become: true
   ansible.builtin.copy:
-    src: /usr/share/applications/code.desktop
-    dest: "/home/{{ item }}/Desktop/code.desktop"
+    src: "/usr/share/applications/{{ vscode_desktop_file }}"
+    dest: "/home/{{ item }}/Desktop/{{ vscode_desktop_file }}"
     remote_src: true
     owner: "{{ item }}"
     group: "{{ item }}"

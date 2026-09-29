@@ -49,6 +49,8 @@ to update rather than drifting after it is taken. `task update` bumps those pins
     vscode_launcher_in_skel: true
 ```
 
+`vscode` sets the fact `vscode_desktop_file` to the launcher name the installed package ships (`com.microsoft.VSCode.desktop` since 1.139), for callers that pin it to a dock or check for it.
+
 ### eBPF toolchain
 
 `ebpf` installs libbpf 1.x beside the distro ABI, with bpftool and bpftrace on
