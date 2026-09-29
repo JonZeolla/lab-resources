@@ -1,0 +1,30 @@
+---
+- name: Verify the eBPF toolchain on EL8
+  hosts: all
+  vars:
+    ansible_python_interpreter: /usr/libexec/platform-python
+  pre_tasks:
+    - name: Mount tracefs inside the disposable test container
+      ansible.builtin.command: mount -t tracefs tracefs /sys/kernel/tracing
+      changed_when: false
+  roles:
+    - jonzeolla.labs.ebpf
+  tasks:
+    - name: Parse the running kernel's BTF with bpftool
+      ansible.builtin.shell: bpftool btf dump file /sys/kernel/btf/vmlinux format raw > /dev/null
+      changed_when: false
+
+    - name: Parse BTF through the installed native library
+      ansible.builtin.command: uv run --no-project --python 3.12 python /tests/verify_library.py
+      changed_when: false
+
+    - name: Load and run a bpftrace program
+      ansible.builtin.command:
+        argv: [bpftrace, '-e', 'BEGIN { printf("ready\n"); exit(); }']
+      register: ebpf_trace
+      changed_when: false
+      failed_when: ebpf_trace.rc != 0 or 'ready' not in ebpf_trace.stdout
+
+    - name: Converge the installed toolchain again
+      ansible.builtin.include_role:
+        name: jonzeolla.labs.ebpf

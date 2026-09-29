@@ -5,4 +5,4 @@
 nodejs_major_version: "22"
 
 # Exact pin for the Windows MSI; there is no stream to follow there.
-nodejs_windows_version: "22.23.1"
+nodejs_windows_version: "22.23.3"

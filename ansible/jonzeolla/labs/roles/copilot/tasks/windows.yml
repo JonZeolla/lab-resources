@@ -1,0 +1,16 @@
+---
+- name: Install Copilot CLI machine-wide
+  # Machine-wide because the nodejs dependency pinned npm's global prefix.
+  ansible.builtin.raw: |
+    $env:Path = [Environment]::GetEnvironmentVariable('Path', 'Machine')
+    npm install -g '@github/copilot@{{ copilot_version }}'
+
+- name: Disable auto-update system-wide
+  ansible.builtin.raw: |
+    [Environment]::SetEnvironmentVariable('COPILOT_AUTO_UPDATE', 'false', 'Machine')
+
+- name: Test Copilot CLI
+  ansible.builtin.raw: |
+    $env:Path = [Environment]::GetEnvironmentVariable('Path', 'Machine')
+    copilot --version
+  changed_when: false
