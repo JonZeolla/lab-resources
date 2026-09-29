@@ -1,0 +1,36 @@
+---
+- name: Ensure supported OS
+  ansible.builtin.assert:
+    that:
+      - ansible_os_family == 'RedHat'
+    fail_msg: "The copilot linux tasks currently support RedHat family systems."
+  run_once: true
+
+# Compared against the pin rather than guarded by `creates:`, which skips
+# whenever any version is present and so never applies a version bump.
+- name: Read the installed Copilot CLI version
+  ansible.builtin.command: npm ls -g --depth=0 --json @github/copilot
+  register: copilot_installed
+  changed_when: false
+  failed_when: false
+
+- name: Install Copilot CLI machine-wide
+  become: true
+  ansible.builtin.command: "npm install -g @github/copilot@{{ copilot_version }}"
+  when: >-
+    (copilot_installed.stdout | from_json).get('dependencies', {})
+    .get('@github/copilot', {}).get('version') != copilot_version
+  changed_when: true
+
+- name: Disable auto-update system-wide
+  become: true
+  ansible.builtin.copy:
+    dest: /etc/profile.d/copilot.sh
+    mode: "0644"
+    content: |
+      # Golden-image invariant: the image re-bake is the update path.
+      export COPILOT_AUTO_UPDATE=false
+
+- name: Test Copilot CLI
+  ansible.builtin.command: copilot --version
+  changed_when: false
