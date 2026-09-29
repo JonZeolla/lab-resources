@@ -6,7 +6,7 @@ This is an Ansible collection used for Jon Zeolla's labs.
 
 The install roles are built for golden images: tools land machine-wide, because a lab or streamed session usually runs as a different user than the one
 converging the image, and versions are pinned in each role's `defaults/main.yml` with self-updaters and update checks turned off, so the image is rebuilt
-to update rather than drifting after it is taken.
+to update rather than drifting after it is taken. `task update` bumps those pins to the latest upstream releases.
 
 | Role | Installs | Platforms |
 | --- | --- | --- |
@@ -53,7 +53,8 @@ to update rather than drifting after it is taken.
 
 `ebpf` installs libbpf 1.x beside the distro ABI, with bpftool and bpftrace on
 `/usr/local/bin`. The source archive and architecture-specific AppImages carry
-SHA-256 pins in `roles/ebpf/defaults/main.yml`; bump versions and checksums together.
+SHA-256 pins in `roles/ebpf/defaults/main.yml`; `task update` bumps versions and
+recomputes checksums together.
 AppImages are extracted once, so tracing needs no FUSE mount. Native builds keep
 EL8's glibc ABI while understanding the BTF emitted by current kernels.
 
