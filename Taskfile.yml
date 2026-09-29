@@ -156,6 +156,12 @@ tasks:
     cmds:
       - docker run -u 0 -v $(pwd):/iac seiso/easy_infra:{{.EASY_INFRA_VERSION}}-ansible ansible-galaxy collection build ansible/jonzeolla/labs/ --force
 
+  unit-test:
+    desc: Verify the native eBPF toolchain in a disposable EL8 container
+    cmds:
+      - docker build -t lab-resources-ebpf-test -f tests/ebpf/Dockerfile .
+      - docker run --rm --privileged lab-resources-ebpf-test
+
   test:
     desc: Run the project tests
     vars:
@@ -165,6 +171,7 @@ tasks:
       - '{{if eq .PLATFORM .LOCAL_PLATFORM}}exit 1{{end}}'
     cmds:
       - docker run -u 0 -v $(pwd):/iac seiso/easy_infra:{{.EASY_INFRA_VERSION}}-ansible ansible-galaxy collection install jonzeolla-labs-{{.VERSION}}.tar.gz
+      - task: unit-test
 
   clean:
     desc: Clean up build artifacts, cache files/directories, temp files, etc.
