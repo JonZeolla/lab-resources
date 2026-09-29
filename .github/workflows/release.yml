@@ -29,6 +29,8 @@ jobs:
         uses: astral-sh/setup-uv@v5
       - name: Install Task
         uses: arduino/setup-task@v2
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
       - name: Initialize the repo
         run: task -v init
       - name: Build the artifacts

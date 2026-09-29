@@ -23,6 +23,8 @@ jobs:
         uses: astral-sh/setup-uv@v5
       - name: Install Task
         uses: arduino/setup-task@v2
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
       - name: Initialize the repo
         run: task -v init
       - name: Cache the pre-commit cache
@@ -34,6 +36,9 @@ jobs:
             ${{ runner.os }}-pre-commit-
       - name: Update the repository
         run: task -v update
+        env:
+          # update-pins.py reads GitHub releases; unauthenticated runners share a rate limit.
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Create or update a pull request
         uses: peter-evans/create-pull-request@v6
         with:
