@@ -35,9 +35,8 @@ def get_args_config() -> dict:
 def run():
     args = get_args_config()
 
-    f = open(args["config"])
-
-    yaml_file = yaml.safe_load(f)
+    with open(args["config"]) as f:
+        yaml_file = yaml.safe_load(f)
 
     for repo_dict in yaml_file["repos"]:
         temp_dir = tempfile.mkdtemp()
