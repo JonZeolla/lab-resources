@@ -64,6 +64,35 @@
   ansible.builtin.command: code --no-sandbox --user-data-dir /tmp/vscode-version-check --version
   changed_when: false
 
+# Microsoft renamed the entry between releases (code.desktop through 1.138,
+# com.microsoft.VSCode.desktop from 1.139), and dock favorites name a launcher
+# by its file name, so the copies keep whatever name the pinned package ships.
+- name: List the files the VS Code package installed
+  ansible.builtin.command: rpm -ql code
+  register: vscode_package_files
+  changed_when: false
+  check_mode: false
+
+- name: Find the VS Code menu entry
+  ansible.builtin.set_fact:
+    vscode_desktop_entries: >-
+      {{ vscode_package_files.stdout_lines
+         | select('match', '^/usr/share/applications/[^/]+\.desktop$')
+         | reject('search', 'url-?handler', ignorecase=true)
+         | list }}
+
+- name: Ensure the package ships exactly one VS Code menu entry
+  ansible.builtin.assert:
+    that:
+      - vscode_desktop_entries | length == 1
+    fail_msg: >-
+      Expected one VS Code menu entry in /usr/share/applications from the code
+      package, found {{ vscode_desktop_entries }}.
+
+- name: Record the VS Code desktop file name
+  ansible.builtin.set_fact:
+    vscode_desktop_file: "{{ vscode_desktop_entries | first | basename }}"
+
 - name: Register the menu entry with the desktop database
   become: true
   ansible.builtin.command: update-desktop-database /usr/share/applications
@@ -80,8 +109,8 @@
         mode: "0755"
     - name: Place the VS Code launcher in skel
       ansible.builtin.copy:
-        src: /usr/share/applications/code.desktop
-        dest: /etc/skel/Desktop/code.desktop
+        src: "/usr/share/applications/{{ vscode_desktop_file }}"
+        dest: "/etc/skel/Desktop/{{ vscode_desktop_file }}"
         remote_src: true
         mode: "0755"
 
@@ -101,8 +130,8 @@
 - name: Place a VS Code launcher on each user's desktop
   become: true
   ansible.builtin.copy:
-    src: /usr/share/applications/code.desktop
-    dest: "/home/{{ item }}/Desktop/code.desktop"
+    src: "/usr/share/applications/{{ vscode_desktop_file }}"
+    dest: "/home/{{ item }}/Desktop/{{ vscode_desktop_file }}"
     remote_src: true
     owner: "{{ item }}"
     group: "{{ item }}"
