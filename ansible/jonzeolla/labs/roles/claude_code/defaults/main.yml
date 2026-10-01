@@ -2,4 +2,4 @@
 # Exact version pin: images must not drift after snapshot, and the npm global
 # install is machine-wide with no auto-updater — the right shape for golden
 # images (the native installer is per-user and self-updating).
-claude_code_version: "2.1.285"
+claude_code_version: "2.1.286"
