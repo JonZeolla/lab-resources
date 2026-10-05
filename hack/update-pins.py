@@ -12,6 +12,7 @@ import json
 import os
 import re
 import tarfile
+import urllib.parse
 import urllib.request
 from collections.abc import Callable
 from dataclasses import dataclass, field
@@ -41,6 +42,16 @@ def sha256(url: str) -> str:
 def github_latest(repo: str, tag: str = r"v(\d+\.\d+\.\d+)") -> str | None:
     """The version in the latest release's tag, if the tag has the shape the role expects."""
     release = fetch_json(f"https://api.github.com/repos/{repo}/releases/latest")
+    match = re.fullmatch(tag, release["tag_name"])
+    return match.group(1) if match else None
+
+
+def gitlab_latest(project: str, tag: str = r"v(\d+\.\d+\.\d+)") -> str | None:
+    """The version in the latest release's tag, if the tag has the shape the role expects."""
+    release = fetch_json(
+        f"https://gitlab.com/api/v4/projects/{urllib.parse.quote(project, safe='')}"
+        "/releases/permalink/latest"
+    )
     match = re.fullmatch(tag, release["tag_name"])
     return match.group(1) if match else None
 
@@ -99,14 +110,17 @@ def bpftool_extras(version: str) -> dict[str, str]:
     }
 
 
-def per_arch_checksums(key: str, url: Callable[[str], str]) -> dict[str, str]:
+def per_arch_checksums(
+    role: str, key: str, url: Callable[[str], str]
+) -> dict[str, str]:
     """Checksum every architecture already listed under `key`, using the role's URL."""
-    defaults = ROLES / "ebpf/defaults/main.yml"
+    defaults = ROLES / role / "defaults/main.yml"
     return {f"{key}.{arch}": sha256(url(arch)) for arch in read_mapping(defaults, key)}
 
 
 def bpftrace_extras(version: str) -> dict[str, str]:
     return per_arch_checksums(
+        "ebpf",
         "ebpf_bpftrace_checksums",
         lambda arch: (
             f"https://github.com/bpftrace/bpftrace/releases/download/v{version}/bpftrace-{arch}"
@@ -117,10 +131,25 @@ def bpftrace_extras(version: str) -> dict[str, str]:
 def task_extras(version: str) -> dict[str, str]:
     arches = read_mapping(ROLES / "ebpf/defaults/main.yml", "ebpf_task_architectures")
     return per_arch_checksums(
+        "ebpf",
         "ebpf_task_checksums",
         lambda arch: (
             f"https://github.com/go-task/task/releases/download/v{version}"
             f"/task_linux_{arches[arch]}.tar.gz"
+        ),
+    )
+
+
+def gitlab_cli_extras(version: str) -> dict[str, str]:
+    arches = read_mapping(
+        ROLES / "gitlab_cli/defaults/main.yml", "gitlab_cli_architectures"
+    )
+    return per_arch_checksums(
+        "gitlab_cli",
+        "gitlab_cli_checksums",
+        lambda arch: (
+            f"https://gitlab.com/gitlab-org/cli/-/releases/v{version}/downloads"
+            f"/glab_{version}_linux_{arches[arch]}.rpm"
         ),
     )
 
@@ -141,6 +170,13 @@ PINS = [
     Pin("copilot", "copilot_version", npm_latest("@github/copilot")),
     Pin("pi", "pi_version", npm_latest("@earendil-works/pi-coding-agent"), pi_extras),
     Pin("vscode", "vscode_version", vscode_latest),
+    Pin("github_cli", "github_cli_version", lambda: github_latest("cli/cli")),
+    Pin(
+        "gitlab_cli",
+        "gitlab_cli_version",
+        lambda: gitlab_latest("gitlab-org/cli"),
+        gitlab_cli_extras,
+    ),
     # The role builds its download URL around a .windows.1 tag, so a later
     # .windows.N respin is skipped rather than written as a broken pin.
     Pin(

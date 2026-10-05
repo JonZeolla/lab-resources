@@ -1,0 +1,4 @@
+---
+# Exact version pin: images must not drift after snapshot. The RPM version is
+# the upstream release tag without its leading v.
+github_cli_version: "2.102.0"
