@@ -1,0 +1,60 @@
+---
+- name: Ensure supported platform and pinned sources
+  ansible.builtin.assert:
+    that:
+      - ansible_os_family == 'RedHat'
+      - ansible_architecture in gitlab_cli_checksums
+      - gitlab_cli_version is match('^[0-9]+\.[0-9]+\.[0-9]+$')
+    fail_msg: "The gitlab_cli role only supports RedHat family systems on {{ gitlab_cli_checksums.keys() | join(', ') }}."
+  run_once: true
+
+- name: Check for the pinned GitLab CLI
+  ansible.builtin.command: "rpm -q glab-{{ gitlab_cli_version }}"
+  register: gitlab_cli_installed
+  changed_when: false
+  failed_when: false
+  check_mode: false
+
+- name: Install the GitLab CLI
+  become: true
+  when: gitlab_cli_installed.rc != 0
+  vars:
+    gitlab_cli_rpm: "/tmp/glab_{{ gitlab_cli_version }}_linux_{{ gitlab_cli_architectures[ansible_architecture] }}.rpm"
+  block:
+    - name: Download the GitLab CLI release RPM
+      ansible.builtin.get_url:
+        url: "https://gitlab.com/gitlab-org/cli/-/releases/v{{ gitlab_cli_version }}/downloads/{{ gitlab_cli_rpm | basename }}"
+        dest: "{{ gitlab_cli_rpm }}"
+        checksum: "{{ gitlab_cli_checksums[ansible_architecture] }}"
+        mode: "0644"
+
+    # The RPM is unsigned; the pinned checksum above is what vouches for it.
+    - name: Install the GitLab CLI RPM
+      ansible.builtin.dnf:
+        name: "{{ gitlab_cli_rpm }}"
+        disable_gpg_check: true
+        state: present
+
+  always:
+    - name: Remove the downloaded RPM
+      ansible.builtin.file:
+        path: "{{ gitlab_cli_rpm }}"
+        state: absent
+
+# glab checks for a newer release once a day; on a rebuilt image nobody can
+# act on the notice. profile.d reaches every login shell, whichever user opens
+# it, where glab's own check_update setting is per-user config.
+- name: Disable GitLab CLI update checks
+  become: true
+  ansible.builtin.copy:
+    dest: /etc/profile.d/gitlab-cli.sh
+    content: |
+      # Managed by the jonzeolla.labs.gitlab_cli role.
+      export GLAB_CHECK_UPDATE=false
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Test the GitLab CLI
+  ansible.builtin.command: glab --version
+  changed_when: false

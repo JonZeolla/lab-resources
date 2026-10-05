@@ -1,0 +1,50 @@
+---
+- name: Ensure supported OS
+  ansible.builtin.assert:
+    that:
+      - ansible_os_family == 'RedHat'
+    fail_msg: "The github_cli role only supports RedHat family systems."
+  run_once: true
+
+- name: Trust the GitHub CLI package signing key
+  become: true
+  ansible.builtin.rpm_key:
+    key: https://cli.github.com/packages/githubcli-archive-keyring.asc
+    state: present
+
+# Same file and section as GitHub's own gh-cli.repo, so following their
+# install instructions later on this host does not configure the repository
+# twice.
+- name: Add the GitHub CLI repository
+  become: true
+  ansible.builtin.yum_repository:
+    name: gh-cli
+    file: gh-cli
+    description: packages for the GitHub CLI
+    baseurl: https://cli.github.com/packages/rpm
+    gpgcheck: true
+    gpgkey: https://cli.github.com/packages/githubcli-archive-keyring.asc
+
+- name: Install the GitHub CLI
+  become: true
+  ansible.builtin.dnf:
+    name: "gh-{{ github_cli_version }}"
+    state: present
+
+# gh checks for a newer release once a day and prints a notice on every
+# command until it is installed; on a rebuilt image nobody can act on it.
+# profile.d reaches every login shell, whichever user opens it.
+- name: Disable GitHub CLI update notices
+  become: true
+  ansible.builtin.copy:
+    dest: /etc/profile.d/github-cli.sh
+    content: |
+      # Managed by the jonzeolla.labs.github_cli role.
+      export GH_NO_UPDATE_NOTIFIER=1
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Test the GitHub CLI
+  ansible.builtin.command: gh --version
+  changed_when: false
