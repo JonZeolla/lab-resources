@@ -1,0 +1,53 @@
+---
+- name: Ensure supported platform and pinned sources
+  ansible.builtin.assert:
+    that:
+      - ansible_system == 'Linux'
+      - ansible_architecture in ripgrep_checksums
+      - ripgrep_version is match('^[0-9]+\.[0-9]+\.[0-9]+$')
+    fail_msg: "The ripgrep role only supports Linux on {{ ripgrep_checksums.keys() | join(', ') }}."
+  run_once: true
+
+- name: Install ripgrep
+  become: true
+  vars:
+    ripgrep_release: "ripgrep-{{ ripgrep_version }}-{{ ansible_architecture }}-unknown-linux-musl"
+    ripgrep_dir: "/opt/ripgrep/{{ ripgrep_version }}"
+  block:
+    - name: Create the source, installation, and man page directories
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        mode: "0755"
+      loop:
+        - /usr/local/src
+        - "{{ ripgrep_dir }}"
+        - /usr/local/share/man/man1
+
+    - name: Download the pinned ripgrep release
+      ansible.builtin.get_url:
+        url: "https://github.com/BurntSushi/ripgrep/releases/download/{{ ripgrep_version }}/{{ ripgrep_release }}.tar.gz"
+        dest: "/usr/local/src/{{ ripgrep_release }}.tar.gz"
+        checksum: "{{ ripgrep_checksums[ansible_architecture] }}"
+        mode: "0644"
+
+    - name: Extract the release
+      ansible.builtin.unarchive:
+        src: "/usr/local/src/{{ ripgrep_release }}.tar.gz"
+        dest: "{{ ripgrep_dir }}"
+        remote_src: true
+        extra_opts: [--strip-components=1]
+        creates: "{{ ripgrep_dir }}/rg"
+
+    - name: Expose ripgrep and its man page
+      ansible.builtin.file:
+        src: "{{ ripgrep_dir }}/{{ item.src }}"
+        dest: "{{ item.dest }}"
+        state: link
+      loop:
+        - { src: rg, dest: /usr/local/bin/rg }
+        - { src: doc/rg.1, dest: /usr/local/share/man/man1/rg.1 }
+
+- name: Test ripgrep
+  ansible.builtin.command: /usr/local/bin/rg --version
+  changed_when: false

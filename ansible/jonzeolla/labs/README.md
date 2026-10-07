@@ -26,6 +26,7 @@ to update rather than drifting after it is taken. `task update` bumps those pins
 | `nodejs` | Node.js and npm (AppStream module stream on RedHat, pinned MSI on Windows) | RedHat, Windows |
 | `ollama` | Ollama | Debian, RedHat |
 | `pi` | Pi coding agent, from npm (depends on `nodejs`) | RedHat, Windows |
+| `ripgrep` | ripgrep, from its static release archive | Linux |
 | `uv` | uv | Linux |
 | `vscode` | Visual Studio Code, from Microsoft's RPM repository | RedHat |
 | `zenable_cli` | Zenable CLI | Linux, Windows |
