@@ -154,6 +154,17 @@ def gitlab_cli_extras(version: str) -> dict[str, str]:
     )
 
 
+def ripgrep_extras(version: str) -> dict[str, str]:
+    return per_arch_checksums(
+        "ripgrep",
+        "ripgrep_checksums",
+        lambda arch: (
+            f"https://github.com/BurntSushi/ripgrep/releases/download/{version}"
+            f"/ripgrep-{version}-{arch}-unknown-linux-musl.tar.gz"
+        ),
+    )
+
+
 @dataclass
 class Pin:
     role: str
@@ -176,6 +187,12 @@ PINS = [
         "gitlab_cli_version",
         lambda: gitlab_latest("gitlab-org/cli"),
         gitlab_cli_extras,
+    ),
+    Pin(
+        "ripgrep",
+        "ripgrep_version",
+        lambda: github_latest("BurntSushi/ripgrep", r"(\d+\.\d+\.\d+)"),
+        ripgrep_extras,
     ),
     # The role builds its download URL around a .windows.1 tag, so a later
     # .windows.N respin is skipped rather than written as a broken pin.

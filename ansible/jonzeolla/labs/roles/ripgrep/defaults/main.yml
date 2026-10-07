@@ -1,0 +1,8 @@
+---
+# Exact version pin: images must not drift after snapshot. Upstream tags carry
+# no leading v. The static musl builds are the only x86_64 Linux archives
+# upstream publishes, and static linking keeps them off the distro's glibc.
+ripgrep_version: "15.2.0"
+ripgrep_checksums:
+  aarch64: "sha256:800b1e7206afe799dfb5a6901f23147cfaabe0e52210538100f61e86e1740915"
+  x86_64: "sha256:33e15bcf1624b25cdd2a55813a47a2f95dbe126268203e76aa6a585d1e7b149c"
