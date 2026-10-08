@@ -2,11 +2,11 @@
 # Exact version pin: images must not drift after snapshot. GitLab publishes
 # no package repository and does not sign its RPMs, so the role installs the
 # release's own RPM and the checksums below are the only integrity check.
-gitlab_cli_version: "1.120.0"
+gitlab_cli_version: "1.121.0"
 # Release asset architecture names, keyed by ansible_architecture.
 gitlab_cli_architectures:
   aarch64: arm64
   x86_64: amd64
 gitlab_cli_checksums:
-  aarch64: "sha256:311f262b0eed743813b1022cd522b46059ca6d6cb6a6e8fd3dc103e13f86c424"
-  x86_64: "sha256:b946412e995a04b26bfc1a32584df97cb20858e9ba908dd0182d12947b5284b0"
+  aarch64: "sha256:2d48e51a96c42e640d1506d5f9ec076f89d7759bb0a8704e6491154b47ce4405"
+  x86_64: "sha256:6ae72a4c41305fce866966c12b46ebe362d873be3260c72b98574f1833efc678"
