@@ -1,3 +1,5 @@
 ---
 dependencies:
   - role: jonzeolla.labs.nodejs
+  - role: jonzeolla.labs.terminal_fonts
+    when: ansible_os_family == 'RedHat'
