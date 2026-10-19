@@ -157,10 +157,19 @@ tasks:
       - docker run -u 0 -v $(pwd):/iac seiso/easy_infra:{{.EASY_INFRA_VERSION}}-ansible ansible-galaxy collection build ansible/jonzeolla/labs/ --force
 
   unit-test:
-    desc: Verify the native eBPF toolchain in a disposable EL8 container
+    desc: Verify lab dependencies in disposable EL8 containers
+    vars:
+      TEST_SUITE: '{{.TEST_SUITE | default "all"}}'
+    preconditions:
+      - sh: test '{{.TEST_SUITE}}' = all || test '{{.TEST_SUITE}}' = ebpf || test '{{.TEST_SUITE}}' = terminal_fonts
+        msg: TEST_SUITE must be all, ebpf, or terminal_fonts
     cmds:
-      - docker build -t lab-resources-ebpf-test -f tests/ebpf/Dockerfile .
-      - docker run --rm --privileged lab-resources-ebpf-test
+      - for: [ebpf, terminal_fonts]
+        cmd: |
+          if [ '{{.TEST_SUITE}}' = all ] || [ '{{.TEST_SUITE}}' = '{{.ITEM}}' ]; then
+            docker build -t lab-resources-{{.ITEM}}-test -f tests/{{.ITEM}}/Dockerfile .
+            docker run --rm {{if eq .ITEM "ebpf"}}--privileged{{end}} lab-resources-{{.ITEM}}-test
+          fi
 
   test:
     desc: Run the project tests

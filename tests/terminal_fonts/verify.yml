@@ -1,0 +1,24 @@
+---
+- name: Verify terminal symbol coverage on EL8
+  hosts: all
+  vars:
+    ansible_python_interpreter: /usr/libexec/platform-python
+  roles:
+    - jonzeolla.labs.terminal_fonts
+  tasks:
+    - name: Check status and context display glyphs
+      ansible.builtin.command:
+        argv: [fc-list, ':charset={{ item }}', family]
+      loop: ['23f5', '23f8', '23fa', '26f6']
+      register: terminal_glyphs
+      changed_when: false
+      failed_when: terminal_glyphs.stdout | trim == ''
+
+    - name: Converge the font installation again
+      ansible.builtin.include_role:
+        name: jonzeolla.labs.terminal_fonts
+
+    - name: Ensure the font installation is idempotent
+      ansible.builtin.assert:
+        that:
+          - not terminal_fonts_artifacts.changed

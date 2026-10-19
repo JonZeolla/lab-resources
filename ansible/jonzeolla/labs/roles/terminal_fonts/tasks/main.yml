@@ -1,0 +1,52 @@
+---
+- name: Ensure supported OS
+  ansible.builtin.assert:
+    that:
+      - ansible_os_family == 'RedHat'
+    fail_msg: The terminal_fonts role supports RedHat family systems.
+
+- name: Install fontconfig
+  become: true
+  ansible.builtin.package:
+    name: fontconfig
+    state: present
+
+- name: Create the terminal symbol font directory
+  become: true
+  ansible.builtin.file:
+    path: /usr/local/share/fonts/noto-symbols
+    state: directory
+    mode: '0755'
+
+# The EL8 desktop's default fonts omit Claude Code's U+23F5 status icon.
+- name: Install the pinned symbol font and its license
+  become: true
+  ansible.builtin.get_url:
+    url: 'https://raw.githubusercontent.com/notofonts/noto-fonts/{{ terminal_fonts_revision }}/{{ item.source }}'
+    dest: '/usr/local/share/fonts/noto-symbols/{{ item.name }}'
+    checksum: '{{ item.checksum }}'
+    mode: '0644'
+  loop:
+    - source: hinted/ttf/NotoSansSymbols/NotoSansSymbols-Regular.ttf
+      name: NotoSansSymbols-Regular.ttf
+      checksum: '{{ terminal_fonts_symbols_checksum }}'
+    - source: hinted/ttf/NotoSansSymbols2/NotoSansSymbols2-Regular.ttf
+      name: NotoSansSymbols2-Regular.ttf
+      checksum: '{{ terminal_fonts_checksum }}'
+    - source: LICENSE
+      name: OFL.txt
+      checksum: '{{ terminal_fonts_license_checksum }}'
+  register: terminal_fonts_artifacts
+
+- name: Refresh the symbol font cache
+  become: true
+  ansible.builtin.command: fc-cache -f /usr/local/share/fonts/noto-symbols
+  when: terminal_fonts_artifacts.changed
+  changed_when: true
+
+- name: Verify the terminal status icon has a font
+  ansible.builtin.command:
+    argv: [fc-list, ':charset=23f5', family]
+  register: terminal_fonts_coverage
+  changed_when: false
+  failed_when: "'Noto Sans Symbols2' not in terminal_fonts_coverage.stdout"
