@@ -1,35 +1,56 @@
 ---
-- name: Ensure supported OS
+- name: Ensure supported platform and pinned sources
   ansible.builtin.assert:
     that:
       - ansible_os_family == 'RedHat'
-    fail_msg: "The github_cli role only supports RedHat family systems."
+      - ansible_architecture in github_cli_checksums
+      - github_cli_version is match('^[0-9]+\.[0-9]+\.[0-9]+$')
+    fail_msg: "The github_cli role only supports RedHat family systems on {{ github_cli_checksums.keys() | join(', ') }}."
   run_once: true
 
-- name: Trust the GitHub CLI package signing key
-  become: true
-  ansible.builtin.rpm_key:
-    key: https://cli.github.com/packages/githubcli-archive-keyring.asc
-    state: present
-
-# Same file and section as GitHub's own gh-cli.repo, so following their
-# install instructions later on this host does not configure the repository
-# twice.
-- name: Add the GitHub CLI repository
-  become: true
-  ansible.builtin.yum_repository:
-    name: gh-cli
-    file: gh-cli
-    description: packages for the GitHub CLI
-    baseurl: https://cli.github.com/packages/rpm
-    gpgcheck: true
-    gpgkey: https://cli.github.com/packages/githubcli-archive-keyring.asc
+- name: Check for the pinned GitHub CLI
+  ansible.builtin.command: "rpm -q gh-{{ github_cli_version }}"
+  register: github_cli_installed
+  changed_when: false
+  failed_when: false
+  check_mode: false
 
 - name: Install the GitHub CLI
   become: true
-  ansible.builtin.dnf:
-    name: "gh-{{ github_cli_version }}"
-    state: present
+  when: github_cli_installed.rc != 0
+  vars:
+    github_cli_rpm: "/tmp/gh_{{ github_cli_version }}_linux_{{ github_cli_architectures[ansible_architecture] }}.rpm"
+  block:
+    - name: Trust the GitHub CLI package signing key
+      ansible.builtin.rpm_key:
+        key: https://cli.github.com/packages/githubcli-archive-keyring.asc
+        state: present
+
+    - name: Download the GitHub CLI release RPM
+      ansible.builtin.get_url:
+        url: "https://github.com/cli/cli/releases/download/v{{ github_cli_version }}/{{ github_cli_rpm | basename }}"
+        dest: "{{ github_cli_rpm }}"
+        checksum: "{{ github_cli_checksums[ansible_architecture] }}"
+        mode: "0644"
+
+    # dnf skips the signature check on a local RPM by default (localpkg_gpgcheck),
+    # and rpm -K exits 0 on an unsigned one, so the output is what proves it.
+    - name: Verify the GitHub CLI RPM signature
+      ansible.builtin.command: "rpm -K {{ github_cli_rpm }}"
+      register: github_cli_signature
+      changed_when: false
+      failed_when: "'signatures OK' not in github_cli_signature.stdout"
+
+    - name: Install the GitHub CLI RPM
+      ansible.builtin.dnf:
+        name: "{{ github_cli_rpm }}"
+        state: present
+
+  always:
+    - name: Remove the downloaded RPM
+      ansible.builtin.file:
+        path: "{{ github_cli_rpm }}"
+        state: absent
 
 # gh checks for a newer release once a day and prints a notice on every
 # command until it is installed; on a rebuilt image nobody can act on it.
