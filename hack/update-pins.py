@@ -154,6 +154,20 @@ def gitlab_cli_extras(version: str) -> dict[str, str]:
     )
 
 
+def github_cli_extras(version: str) -> dict[str, str]:
+    arches = read_mapping(
+        ROLES / "github_cli/defaults/main.yml", "github_cli_architectures"
+    )
+    return per_arch_checksums(
+        "github_cli",
+        "github_cli_checksums",
+        lambda arch: (
+            f"https://github.com/cli/cli/releases/download/v{version}"
+            f"/gh_{version}_linux_{arches[arch]}.rpm"
+        ),
+    )
+
+
 def ripgrep_extras(version: str) -> dict[str, str]:
     return per_arch_checksums(
         "ripgrep",
@@ -181,7 +195,12 @@ PINS = [
     Pin("copilot", "copilot_version", npm_latest("@github/copilot")),
     Pin("pi", "pi_version", npm_latest("@earendil-works/pi-coding-agent"), pi_extras),
     Pin("vscode", "vscode_version", vscode_latest),
-    Pin("github_cli", "github_cli_version", lambda: github_latest("cli/cli")),
+    Pin(
+        "github_cli",
+        "github_cli_version",
+        lambda: github_latest("cli/cli"),
+        github_cli_extras,
+    ),
     Pin(
         "gitlab_cli",
         "gitlab_cli_version",
