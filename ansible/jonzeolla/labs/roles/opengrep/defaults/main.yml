@@ -1,0 +1,11 @@
+---
+# Exact version pin: images must not drift after snapshot. The manylinux build
+# links against glibc 2.28 (EL8); check that floor before bumping.
+opengrep_version: "1.31.0"
+# Release asset architecture names, keyed by ansible_architecture.
+opengrep_architectures:
+  aarch64: aarch64
+  x86_64: x86
+opengrep_checksums:
+  aarch64: "sha256:2b713a29a00237f85408b83002fc111db5b94c7fa8d263f0a93184a960655d9d"
+  x86_64: "sha256:dbbe3c2058dbe600c449a8ba22ea79a1643a6660658400090d0323a8d0d31147"

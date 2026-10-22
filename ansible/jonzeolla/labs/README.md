@@ -25,6 +25,7 @@ to update rather than drifting after it is taken. `task update` bumps those pins
 | `homebrew` | Homebrew | Debian, RedHat |
 | `nodejs` | Node.js and npm (AppStream module stream on RedHat, pinned MSI on Windows) | RedHat, Windows |
 | `ollama` | Ollama | Debian, RedHat |
+| `opengrep` | Opengrep, from its manylinux release binary | Linux |
 | `pi` | Pi coding agent, from npm (depends on `nodejs`) | RedHat, Windows |
 | `ripgrep` | ripgrep, from its static release archive | Linux |
 | `uv` | uv | Linux |

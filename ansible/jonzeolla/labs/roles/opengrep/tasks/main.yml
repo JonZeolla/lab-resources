@@ -1,0 +1,38 @@
+---
+- name: Ensure supported platform and pinned sources
+  ansible.builtin.assert:
+    that:
+      - ansible_system == 'Linux'
+      - ansible_architecture in opengrep_checksums
+      - ansible_architecture in opengrep_architectures
+      - opengrep_version is match('^[0-9]+\.[0-9]+\.[0-9]+$')
+    fail_msg: "The opengrep role only supports Linux on {{ opengrep_checksums.keys() | join(', ') }}."
+  run_once: true
+
+- name: Install opengrep
+  become: true
+  vars:
+    opengrep_dir: "/opt/opengrep/{{ opengrep_version }}"
+  block:
+    - name: Create the installation directory
+      ansible.builtin.file:
+        path: "{{ opengrep_dir }}"
+        state: directory
+        mode: "0755"
+
+    - name: Download the pinned opengrep release
+      ansible.builtin.get_url:
+        url: "https://github.com/opengrep/opengrep/releases/download/v{{ opengrep_version }}/opengrep_manylinux_{{ opengrep_architectures[ansible_architecture] }}"
+        dest: "{{ opengrep_dir }}/opengrep"
+        checksum: "{{ opengrep_checksums[ansible_architecture] }}"
+        mode: "0755"
+
+    - name: Expose opengrep
+      ansible.builtin.file:
+        src: "{{ opengrep_dir }}/opengrep"
+        dest: /usr/local/bin/opengrep
+        state: link
+
+- name: Test opengrep
+  ansible.builtin.command: /usr/local/bin/opengrep --version
+  changed_when: false
