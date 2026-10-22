@@ -179,6 +179,20 @@ def ripgrep_extras(version: str) -> dict[str, str]:
     )
 
 
+def opengrep_extras(version: str) -> dict[str, str]:
+    arches = read_mapping(
+        ROLES / "opengrep/defaults/main.yml", "opengrep_architectures"
+    )
+    return per_arch_checksums(
+        "opengrep",
+        "opengrep_checksums",
+        lambda arch: (
+            f"https://github.com/opengrep/opengrep/releases/download/v{version}"
+            f"/opengrep_manylinux_{arches[arch]}"
+        ),
+    )
+
+
 @dataclass
 class Pin:
     role: str
@@ -212,6 +226,12 @@ PINS = [
         "ripgrep_version",
         lambda: github_latest("BurntSushi/ripgrep", r"(\d+\.\d+\.\d+)"),
         ripgrep_extras,
+    ),
+    Pin(
+        "opengrep",
+        "opengrep_version",
+        lambda: github_latest("opengrep/opengrep"),
+        opengrep_extras,
     ),
     # The role builds its download URL around a .windows.1 tag, so a later
     # .windows.N respin is skipped rather than written as a broken pin.
