@@ -11,3 +11,11 @@ chromium_launcher_users: []
 # starts with the launcher too. Off by default: it touches every future user
 # on the host.
 chromium_launcher_in_skel: false
+
+# Flags every launch of chromium-browser gets, written to
+# /etc/chromium/chromium.conf, which the EPEL wrapper sources. Empty writes
+# nothing. A desktop whose user has no login password (a streamed session)
+# cannot unlock a GNOME keyring, so Chromium's first launch there stops on a
+# "Choose password for new keyring" dialog unless it is told
+# --password-store=basic.
+chromium_system_flags: []
