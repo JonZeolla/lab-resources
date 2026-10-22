@@ -26,6 +26,15 @@
   ansible.builtin.command: chromium-browser --version
   changed_when: false
 
+- name: Set system-wide Chromium flags
+  become: true
+  when: chromium_system_flags | length > 0
+  ansible.builtin.copy:
+    dest: /etc/chromium/chromium.conf
+    content: |
+      CHROMIUM_FLAGS="{{ chromium_system_flags | join(' ') }}"
+    mode: "0644"
+
 - name: Register the menu entry with the desktop database
   become: true
   ansible.builtin.command: update-desktop-database /usr/share/applications
