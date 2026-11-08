@@ -42,8 +42,8 @@ jobs:
       - name: Create or update a pull request
         uses: peter-evans/create-pull-request@v6
         with:
-          title: Automated update
-          commit-message: Automated update
+          title: "chore: automated update"
+          commit-message: "chore: automated update"
           committer: Automation <automation@jonzeolla.com>
           delete-branch: true
           signoff: true
