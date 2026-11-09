@@ -37,11 +37,14 @@
         remote_src: true
         creates: "{{ goose_dir }}/goose"
 
-    - name: Expose goose machine-wide
-      ansible.builtin.file:
+    # A copy, not a symlink: exec resolves links, so LSMs and tracers report the
+    # target path, and labs match the agent by the path `command -v` prints.
+    - name: Install goose machine-wide
+      ansible.builtin.copy:
         src: "{{ goose_dir }}/goose"
         dest: /usr/local/bin/goose
-        state: link
+        remote_src: true
+        mode: "0755"
 
 - name: Test goose
   ansible.builtin.command: /usr/local/bin/goose --version
