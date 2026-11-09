@@ -1,0 +1,51 @@
+---
+- name: Ensure supported platform and pinned sources
+  ansible.builtin.assert:
+    that:
+      - ansible_system == 'Linux'
+      - ansible_architecture in goose_checksums
+      - goose_version is match('^[0-9]+\.[0-9]+\.[0-9]+$')
+    fail_msg: "The goose role only supports Linux on {{ goose_checksums.keys() | join(', ') }}."
+  run_once: true
+
+- name: Install goose
+  become: true
+  vars:
+    goose_release: "goose-{{ ansible_architecture }}-unknown-linux-gnu"
+    goose_dir: "/opt/goose/{{ goose_version }}"
+  block:
+    - name: Create the source and installation directories
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        mode: "0755"
+      loop:
+        - /usr/local/src
+        - "{{ goose_dir }}"
+
+    - name: Download the pinned goose release
+      ansible.builtin.get_url:
+        url: "https://github.com/aaif-goose/goose/releases/download/v{{ goose_version }}/{{ goose_release }}.tar.gz"
+        dest: "/usr/local/src/{{ goose_release }}-{{ goose_version }}.tar.gz"
+        checksum: "{{ goose_checksums[ansible_architecture] }}"
+        mode: "0644"
+
+    - name: Extract the release
+      ansible.builtin.unarchive:
+        src: "/usr/local/src/{{ goose_release }}-{{ goose_version }}.tar.gz"
+        dest: "{{ goose_dir }}"
+        remote_src: true
+        creates: "{{ goose_dir }}/goose"
+
+    # A copy, not a symlink: exec resolves links, so LSMs and tracers report the
+    # target path, and labs match the agent by the path `command -v` prints.
+    - name: Install goose machine-wide
+      ansible.builtin.copy:
+        src: "{{ goose_dir }}/goose"
+        dest: /usr/local/bin/goose
+        remote_src: true
+        mode: "0755"
+
+- name: Test goose
+  ansible.builtin.command: /usr/local/bin/goose --version
+  changed_when: false
