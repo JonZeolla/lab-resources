@@ -179,6 +179,17 @@ def ripgrep_extras(version: str) -> dict[str, str]:
     )
 
 
+def goose_extras(version: str) -> dict[str, str]:
+    return per_arch_checksums(
+        "goose",
+        "goose_checksums",
+        lambda arch: (
+            f"https://github.com/aaif-goose/goose/releases/download/v{version}"
+            f"/goose-{arch}-unknown-linux-gnu.tar.gz"
+        ),
+    )
+
+
 def opengrep_extras(version: str) -> dict[str, str]:
     arches = read_mapping(
         ROLES / "opengrep/defaults/main.yml", "opengrep_architectures"
@@ -226,6 +237,12 @@ PINS = [
         "ripgrep_version",
         lambda: github_latest("BurntSushi/ripgrep", r"(\d+\.\d+\.\d+)"),
         ripgrep_extras,
+    ),
+    Pin(
+        "goose",
+        "goose_version",
+        lambda: github_latest("aaif-goose/goose"),
+        goose_extras,
     ),
     Pin(
         "opengrep",

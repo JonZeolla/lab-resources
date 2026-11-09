@@ -1,0 +1,8 @@
+---
+# Exact version pin: images must not drift after snapshot. The glibc builds are
+# the ones upstream's own installer picks on a glibc system, and they run on
+# EL8's glibc 2.28.
+goose_version: "1.53.0"
+goose_checksums:
+  aarch64: "sha256:01a0ea109e1984e7a511ff3f99d1a29d32e6f90f0852b5a3b416499c8eaae567"
+  x86_64: "sha256:deb2191a6b75acc0a20232fc5c52655ea2f9cc8fa2f5dffc8622e8d378a915dc"

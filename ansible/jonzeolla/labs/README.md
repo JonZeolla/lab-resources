@@ -21,6 +21,7 @@ to update rather than drifting after it is taken. `task update` bumps those pins
 | `ebpf` | bpftool and matching libbpf from verified source, plus bpftrace AppImage | Debian, RedHat |
 | `git` | Git | Linux, Windows |
 | `gitlab` | GitLab | Debian, RedHat |
+| `goose` | goose coding agent, from its glibc release archive | Linux |
 | `gitlab_runner` | GitLab Runner | Debian, RedHat |
 | `homebrew` | Homebrew | Debian, RedHat |
 | `nodejs` | Node.js and npm (AppStream module stream on RedHat, pinned MSI on Windows) | RedHat, Windows |
