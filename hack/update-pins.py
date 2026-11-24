@@ -199,7 +199,7 @@ def opengrep_extras(version: str) -> dict[str, str]:
         "opengrep_checksums",
         lambda arch: (
             f"https://github.com/opengrep/opengrep/releases/download/v{version}"
-            f"/opengrep_manylinux_{arches[arch]}"
+            f"/opengrep_linux_{arches[arch]}"
         ),
     )
 

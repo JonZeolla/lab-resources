@@ -22,7 +22,7 @@
 
     - name: Download the pinned opengrep release
       ansible.builtin.get_url:
-        url: "https://github.com/opengrep/opengrep/releases/download/v{{ opengrep_version }}/opengrep_manylinux_{{ opengrep_architectures[ansible_architecture] }}"
+        url: "https://github.com/opengrep/opengrep/releases/download/v{{ opengrep_version }}/opengrep_linux_{{ opengrep_architectures[ansible_architecture] }}"
         dest: "{{ opengrep_dir }}/opengrep"
         checksum: "{{ opengrep_checksums[ansible_architecture] }}"
         mode: "0755"
