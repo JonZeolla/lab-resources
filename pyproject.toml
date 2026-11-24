@@ -14,6 +14,7 @@ require-hashes = true
 [tool.uv]
 managed = true
 dev-dependencies = [
+  "ansible-core",
   "ansible-lint",
   "bumpversion",
   "pre-commit",

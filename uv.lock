@@ -410,6 +410,8 @@ source = { virtual = "." }
 
 [package.dev-dependencies]
 dev = [
+    { name = "ansible-core", version = "2.21.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.13'" },
+    { name = "ansible-core", version = "2.22.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.13'" },
     { name = "ansible-lint" },
     { name = "bumpversion" },
     { name = "pre-commit" },
@@ -419,6 +421,7 @@ dev = [
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "ansible-core" },
     { name = "ansible-lint" },
     { name = "bumpversion" },
     { name = "pre-commit" },

@@ -12,7 +12,6 @@ vars:
   IMAGE_NAME: jonzeolla/policy-as-code-setup
   PYTHON_VERSION: 3.12
   SUPPORTED_PLATFORMS: 'linux/amd64,linux/arm64'
-  EASY_INFRA_VERSION: '2025.01.04'
   VERSION:
     sh: cat '{{.ROOT_DIR}}/VERSION'
   LOCAL_PLATFORM:
@@ -154,7 +153,7 @@ tasks:
               build_version = f"{{.VERSION}}-{{.COMMIT_HASH_SHORT}}"
           print(build_version)'
     cmds:
-      - docker run -u 0 -v $(pwd):/iac seiso/easy_infra:{{.EASY_INFRA_VERSION}}-ansible ansible-galaxy collection build ansible/jonzeolla/labs/ --force
+      - uv run ansible-galaxy collection build ansible/jonzeolla/labs/ --force
 
   unit-test:
     desc: Verify lab dependencies in disposable EL8 containers
@@ -179,7 +178,11 @@ tasks:
     status:
       - '{{if eq .PLATFORM .LOCAL_PLATFORM}}exit 1{{end}}'
     cmds:
-      - docker run -u 0 -v $(pwd):/iac seiso/easy_infra:{{.EASY_INFRA_VERSION}}-ansible ansible-galaxy collection install jonzeolla-labs-{{.VERSION}}.tar.gz
+      - |
+        # Install into a disposable path so that tests don't change the user's collections
+        collections_path="$(mktemp -d)"
+        trap 'rm -rf "${collections_path}"' EXIT
+        uv run ansible-galaxy collection install jonzeolla-labs-{{.VERSION}}.tar.gz -p "${collections_path}"
       - task: unit-test
 
   clean:
