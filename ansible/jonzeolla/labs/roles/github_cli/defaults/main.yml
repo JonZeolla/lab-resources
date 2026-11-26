@@ -2,11 +2,11 @@
 # Exact version pin: images must not drift after snapshot. The RPM version is
 # the upstream release tag without its leading v. GitHub's package repository
 # keeps only the newest release, so the role installs the release's own RPM.
-github_cli_version: "2.103.3"
+github_cli_version: "2.106.0"
 # Release asset architecture names, keyed by ansible_architecture.
 github_cli_architectures:
   aarch64: arm64
   x86_64: amd64
 github_cli_checksums:
-  aarch64: "sha256:0e831f940b30fffc5eabdab388140fd1e63eb519f3b77546ec026d1abfa4ff3e"
-  x86_64: "sha256:65d55875faa3281959676d91da15a9380583281586ac31bbd3d32b7924a9f4d2"
+  aarch64: "sha256:5261559911b0994eb293dcfffed62d521d861a9c7c531a2ec7cd6a42e726f4e3"
+  x86_64: "sha256:fca9d772f2ba94e21acb9c3d891c1e744aed2dfa4d0cde0dac54b95da78042dd"
