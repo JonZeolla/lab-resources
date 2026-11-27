@@ -1,11 +1,11 @@
 ---
 # Exact version pin: images must not drift after snapshot. The Linux build is
 # static, so the host glibc does not matter; check that still holds before bumping.
-opengrep_version: "2.0.0"
+opengrep_version: "2.1.0"
 # Release asset architecture names, keyed by ansible_architecture.
 opengrep_architectures:
   aarch64: aarch64
   x86_64: x86
 opengrep_checksums:
-  aarch64: "sha256:6257b65423a744b704af2ff9beeb8f222c2f6925236af386b56b031d4c06d6d8"
-  x86_64: "sha256:37e93f4da5fd04a18c5c1febbdd12f7e98dfccd4d0c9cf2593bcb25eeb462da0"
+  aarch64: "sha256:3abfc87d66f208efd143a1b408d489af934cea7d9968ab1f37dca001f9886092"
+  x86_64: "sha256:d6a68a84c01a3d8ee933f60847decf1b4d0fd7791a26833b32b95922baf28974"
